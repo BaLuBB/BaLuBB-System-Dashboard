@@ -6,8 +6,7 @@ import { bytes, pct } from './format.js';
 const num = (n) => n.toLocaleString('de-DE');
 const KLASS = { '2xx': '🟢 2xx Erfolg', '3xx': '🔵 3xx Weiterleitung', '4xx': '🟠 4xx Client-Fehler (z. B. 403)', '5xx': '🔴 5xx Server-Fehler' };
 
-export default function CloudflareCard() {
-  const c = useCloudflare();
+export function CloudflareView({ c }) {
   if (!c || c.configured === false) return null; // ohne Token/Zone keine Kachel
   if (c.error) return <Card title="Cloudflare" wide><p className="err">{c.error}</p></Card>;
 
@@ -30,4 +29,8 @@ export default function CloudflareCard() {
       </div>
     </Card>
   );
+}
+
+export default function CloudflareCard() {
+  return <CloudflareView c={useCloudflare()} />;
 }

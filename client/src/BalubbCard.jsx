@@ -10,8 +10,7 @@ const STATE = {
 const stateOf = (s) => STATE[s] ?? ['⚪', s];
 const fmt = (iso) => new Date(iso).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
 
-export default function BalubbCard() {
-  const b = useBalubb();
+export function BalubbView({ b }) {
   if (!b || b.configured === false) return null; // ohne BALUBB_API_KEY keine Kachel
 
   if (b.error) {
@@ -35,4 +34,8 @@ export default function BalubbCard() {
       ))}
     </Card>
   );
+}
+
+export default function BalubbCard() {
+  return <BalubbView b={useBalubb()} />;
 }
