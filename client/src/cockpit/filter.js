@@ -32,13 +32,32 @@ const sum = (arr, f) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
 
 /** Quellen mit Summen über alle Server: nach Namen nicht aufteilbar, deshalb bei aktivem Filter nicht veröffentlicht. Pro Server gibt es die Zahlen in der Top-Server-Liste. */
 export const ALL_SERVER_SOURCES = ['statsGlobal', 'tickets', 'applications', 'moderation', 'dashboardActivity'];
+
+/** Gesamtlage aus den Tagesverläufen der passenden Server (summiert je Tag); ohne Verläufe gibt es null. */
+export function statsFromServers(topSource) {
+  const items = topSource?.available ? (topSource.data.items ?? []) : [];
+  const byDate = new Map();
+  for (const it of items) for (const d of it.daily ?? []) {
+    const row = byDate.get(d.date) ?? { date: d.date, messages: 0, voice_hours: 0, joins: 0, leaves: 0 };
+    row.messages += Number(d.messages) || 0; row.voice_hours += Number(d.voice_hours) || 0; row.joins += Number(d.joins) || 0; row.leaves += Number(d.leaves) || 0;
+    byDate.set(d.date, row);
+  }
+  if (!byDate.size) return null;
+  return {
+    days: topSource.data.days, derived: true, totals: {},
+    servers_with_activity: items.filter((x) => (Number(x.messages) || 0) > 0).length,
+    active_chatters: items.reduce((a, x) => a + (Number(x.active_chatters) || 0), 0),
+    daily: [...byDate.values()].sort((a, z) => a.date.localeCompare(z.date)),
+  };
+}
 export const HIDDEN_NOTE = 'wegen Namensfilter nicht angezeigt';
 
 /** Filtert die Quellen nach Namen und berechnet davon abhängige Summen neu. Summen über alle (z. B. Gesamtstatistik) bleiben. */
 export function applyNameFilter(sources, keywords) {
   const match = makeMatcher(keywords);
   const out = { ...sources };
-  if (keywords.length) for (const k of ALL_SERVER_SOURCES) if (out[k]) out[k] = { available: false, hidden: true, error: HIDDEN_NOTE };
+  const hide = () => ({ available: false, hidden: true, error: HIDDEN_NOTE });
+  if (keywords.length) for (const k of ALL_SERVER_SOURCES) if (out[k]) out[k] = hide();
   const edit = (key, fn) => { const s = out[key]; if (s?.available) out[key] = { ...s, data: fn(structuredClone(s.data)) }; };
   const serverTotals = (items) => ({ total: items.length, running: items.filter((x) => x.state === 'running').length });
 
@@ -65,6 +84,11 @@ export function applyNameFilter(sources, keywords) {
     if (au && d.automations) d.automations = { total: au.total, active: au.active, runs_today: au.runs_today, errors_today: au.errors_today };
     return d;
   });
+  // Gesamtlage nicht verstecken, sondern aus den passenden Servern neu zusammensetzen
+  if (keywords.length && out.statsGlobal) {
+    const derived = statsFromServers(out.serversTop90?.available ? out.serversTop90 : out.serversTop30);
+    if (derived) out.statsGlobal = { available: true, data: derived };
+  }
   return out;
 };
 

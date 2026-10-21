@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { OverviewSection, topServers } from './sectionsA.jsx';
-import { OverviewSlide, ServerSlide, TopBarsSlide } from './tvSlides.jsx';
+import { OverviewSlide, ServerSlide, SupportTopSlide, TopBarsSlide } from './tvSlides.jsx';
 import { AutomationsSection, ActivitySection, CloudflareSection, ReleasesSection, SupportSection, SystemSection } from './sectionsB.jsx';
 import { dataOf } from './data.js';
 import { overallStatus } from './status.js';
@@ -115,7 +115,7 @@ export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' 
       { name: 'Aktivität', hf: 0.5, body: <div className="tv-lage"><OverviewSection snap={snap} range={30} /></div>, skip: hidden('statsGlobal') },
       { name: 'Top-Server', hf: 0.7, body: <TopBarsSlide snap={snap} />, skip: topEmpty },
       { name: 'Abläufe', hf: 0.95, body: <AutomationsSection snap={snap} /> },
-      { name: 'Support', hf: 0.85, body: <SupportSection snap={snap} range={30} />, skip: hidden('tickets', 'applications', 'moderation') },
+      { name: 'Support', hf: hidden('tickets', 'applications', 'moderation') ? 0.6 : 0.85, body: hidden('tickets', 'applications', 'moderation') ? <SupportTopSlide snap={snap} /> : <SupportSection snap={snap} range={30} />, skip: topEmpty && hidden('tickets', 'applications', 'moderation') },
     ];
     if (hasCf) list.push({ name: 'Cloudflare', hf: 0.5, body: <CloudflareSection snap={snap} range={30} /> });
     list.push({ name: 'System', hf: 0.7, body: <div className="tv-stack"><SystemSection snap={snap} /><ReleasesSection snap={snap} limit={4} /></div> });

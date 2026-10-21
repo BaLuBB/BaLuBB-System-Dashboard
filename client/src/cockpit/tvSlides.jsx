@@ -94,3 +94,29 @@ function TopTable({ snap }) {
     </Card>
   );
 }
+
+/** Kategorie „Support“ bei aktivem Namensfilter: Tickets, Bewerbungen und Moderation je passendem Server (die API liefert Tagesverläufe nur über alle Server). */
+export function SupportTopSlide({ snap }) {
+  const t = topServers(snap, 30, 'messages', 10);
+  const items = t.available ? t.items : [];
+  const sum = (f) => items.reduce((a, x) => a + (Number(f(x)) || 0), 0);
+  const rows = (f) => items.map((s) => ({ label: s.name, value: Number(f(s)) || 0 })).filter((r) => r.value > 0).sort((a, z) => z.value - a.value);
+  return (
+    <Section id="support" title="Tickets, Bewerbungen, Moderation" sub="je Server mit passendem Namen, letzte 30 Tage">
+      <div className="cp-grid cols-3">
+        <Card title="Tickets">
+          <p className="cp-hero"><span className="cp-big">{num(sum((s) => s.tickets?.open))}</span><span className="cp-unit">offen · {num(sum((s) => s.tickets?.total))} gesamt · {num(sum((s) => s.tickets?.created))} neu</span></p>
+          <HBars rows={rows((s) => s.tickets?.total)} empty="Keine Tickets." />
+        </Card>
+        <Card title="Bewerbungen">
+          <p className="cp-hero"><span className="cp-big">{num(sum((s) => s.applications?.submitted))}</span><span className="cp-unit">neu · {num(sum((s) => s.applications?.total))} gesamt</span></p>
+          <HBars rows={rows((s) => s.applications?.total)} empty="Keine Bewerbungen." />
+        </Card>
+        <Card title="Moderation">
+          <p className="cp-hero"><span className="cp-big">{num(sum((s) => s.moderation?.total))}</span><span className="cp-unit">Aktionen</span></p>
+          <HBars rows={rows((s) => s.moderation?.total)} empty="Keine Aktionen." />
+        </Card>
+      </div>
+    </Section>
+  );
+}
