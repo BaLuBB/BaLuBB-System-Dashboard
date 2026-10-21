@@ -4,6 +4,9 @@ import { compact, dataOf, durationText, entryView, lastN, maintenancePhase, num,
 import { overallStatus } from './status.js';
 import { Card, Empty, Pill, Section, Skeleton, Slim, Unavailable } from './ui.jsx';
 import { uptimeByServer } from '../history.js';
+import { filterLabel } from './filter.js';
+
+const filtered = (snap) => (snap.filter?.keywords?.length ? filterLabel(snap.filter.keywords) : '');
 
 /* ---------- Zu erledigen ---------- */
 function TodoBlock({ title, src, countKey, listKey, now }) {
@@ -70,7 +73,7 @@ export function StatusSection({ snap, now, compact = false }) {
           </ul>
         )}
         <hr className="cp-rule" />
-        {!serversSrc.available && !health ? <Unavailable what="Server" /> : items.length === 0 ? <Empty>Es sind keine Server hinterlegt.</Empty> : (
+        {!serversSrc.available && !health ? <Unavailable what="Server" /> : items.length === 0 ? <Empty>{filtered(snap) ? `Kein Dienst mit ${filtered(snap)} im Namen gefunden.` : 'Es sind keine Server hinterlegt.'}</Empty> : (
           <div className="cp-servers">
             {[...items].sort((a, z) => ({ offline: 0, starting: 1, running: 2 }[a.state] ?? 3) - ({ offline: 0, starting: 1, running: 2 }[z.state] ?? 3) || a.name.localeCompare(z.name)).map((s) => {
               const [state, word] = SERVER_STATE[s.state] ?? ['warn', s.state];
@@ -203,7 +206,7 @@ export function TopServersSection({ snap, range, expandable = true, fixedCount, 
         </div>
       )}
       <div className="cp-card">
-        {!top.available ? <Unavailable what="Top-Server" /> : top.items.length === 0 ? <Empty>In diesem Zeitraum gab es keine Aktivität auf den Servern.</Empty> : (
+        {!top.available ? <Unavailable what="Top-Server" /> : top.items.length === 0 ? <Empty>{filtered(snap) ? `Kein Server mit ${filtered(snap)} im Namen hat in diesem Zeitraum Aktivität.` : 'In diesem Zeitraum gab es keine Aktivität auf den Servern.'}</Empty> : (
           <div className="cp-top">
             {top.items.map((s, i) => {
               const isOpen = open === s.id || open === s.name;

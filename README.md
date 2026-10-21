@@ -19,7 +19,7 @@ entschlüsselt im Browser. Ohne Passwort wird nichts veröffentlicht (der Build 
 
 ### Aufbau der Seite (von oben nach unten)
 
-Kopfzeile (Zeitraum 7/30/90 Tage, Hell/Dunkel, TV-Link) · **Zu erledigen** (neue Server zum Aktivieren, neues Feedback,
+Kopfzeile (Zeitraum 7/30/90 Tage, Hell/Dunkel, Diashow-Link) · **Zu erledigen** (neue Server zum Aktivieren, neues Feedback,
 offene Custom-Bot-Anfragen) · **Gesamtzustand** mit Server-Liste (Zustand, Laufzeit, CPU, Speicher, Platte) ·
 **Wartungen** mit Countdown · **Gesamtlage** aller Server · **Top-Server** (3 bis 10, Rangfolge wählbar, Zeilen aufklappbar) ·
 **Abläufe** · **Tickets, Bewerbungen, Moderation** · **System** · **Aktivität im Dashboard** · **Versionen** · **Cloudflare**
@@ -30,22 +30,30 @@ veraltet bei Daten über 15 Minuten. Handy zuerst, Tippflächen ab 44 px, Kontra
 weniger Bewegung bei entsprechender Einstellung. Farbe nur für Zustände (grün läuft, gelb Warnung, rot Fehler,
 violett Wartung), nie allein, immer mit Symbol und Text. Schriften (Inter, Space Grotesk, IBM Plex Mono) sind lokal gebündelt.
 
-### Fernseher (ohne Bedienung)
+### Fernseher: Diashow ohne Bedienung
 
-Im normalen Modus anmelden und auf **TV-Link** klicken. Den Link einmal auf dem Fernseher öffnen:
+Die Startseite ist eine **Diashow**: eine Bildschirmseite, die alle 20 Sekunden zur nächsten Kategorie wechselt. Unten steht die
+Kategorie-Leiste (Überblick, Server, Aktivität, Top-Server, Abläufe, Support, Cloudflare, System, Dashboard) mit Fortschrittsbalken;
+Kategorien mit Auffälligkeiten tragen ein Symbol. Es gibt nichts zu bedienen.
+
+**Der kürzeste Link (zum Eintippen mit der Fernbedienung):**
 
 ```
-https://balubb.github.io/BaLuBB-System-Dashboard/#tv&pw=DEIN-PASSWORT
+balubb.github.io/BaLuBB-System-Dashboard
 ```
 
-Der Fernseher **merkt sich das Passwort im Browser-Speicher** (localStorage), danach genügt der Lesezeichen-Link ohne Passwort:
-`…/#tv`. Der TV-Modus meldet sich selbst an, passt sich jeder Bildschirmgröße an (feste 1920×1080-Bühne, skaliert), wechselt alle
-20 Sekunden zwischen 5 Seiten, hält den Bildschirm wach (wo der Browser es erlaubt), blendet den Mauszeiger aus, lädt sich alle
-6 Stunden neu und zeigt bei Verbindungsproblemen die letzten Daten mit Hinweis.
+Beim ersten Mal erscheint ein großes Passwortfeld. Passwort tippen, Enter. Danach **merkt sich der Fernseher das Passwort im Browser-Speicher**
+(localStorage) und startet die Diashow künftig von selbst. Wer das Passwort nicht tippen möchte, hängt es an: `…/#passwort`
+(Buchstaben, Ziffern, `-`, `_`, `.`; bei anderen Zeichen erzeugt der Knopf **Diashow-Link** im Cockpit den kodierten Link `…/#pw=…`).
+Auch `#tv&pw=…` aus früheren Links funktioniert weiter.
 
-Optionen im Link: `slide=30` (Sekunden je Seite, mindestens 3), `theme=light`.
-Wird das Passwort geändert, den TV-Link einmal mit dem neuen Passwort öffnen. „Abmelden“ löscht das gespeicherte Passwort.
-Auf gemeinsam genutzten Rechnern beim Anmelden „Auf diesem Gerät angemeldet bleiben“ abwählen.
+Die Diashow meldet sich selbst an, passt sich jeder Bildschirmgröße an (feste 1920×1080-Bühne, skaliert), hält den Bildschirm wach
+(wo der Browser es erlaubt), lädt sich alle 6 Stunden neu und zeigt bei Verbindungsproblemen die letzten
+Daten mit Hinweis. Optionen im Link: `slide=30` (Sekunden je Kategorie, mindestens 3), `theme=light`.
+Wird das Passwort geändert, den Link einmal mit dem neuen Passwort öffnen. Auf gemeinsam genutzten Rechnern beim Anmelden
+„Auf diesem Gerät angemeldet bleiben“ abwählen.
+
+**Interaktives Cockpit** (Handy, Desktop): `…/#cockpit` mit Zeitraum 7/30/90 Tage, Hell/Dunkel, aufklappbaren Zeilen; „Abmelden“ löscht das gespeicherte Passwort.
 
 ### Einrichtung
 
@@ -63,6 +71,15 @@ Auf gemeinsam genutzten Rechnern beim Anmelden „Auf diesem Gerät angemeldet b
 `moderation`, `stats/global`, `dashboard-activity` (nur die letzten 500 Einträge), `system`, `counts`, `releases?full=1`.
 Je Quelle gibt es Rückfallpfade; fällt eine aus, zeigt nur ihr Bereich „gerade nicht verfügbar“. Die API liefert nur Summen,
 keine Nutzernamen, IDs oder Nachrichten.
+
+### Namensfilter
+
+Angezeigt werden nur Dienste, Abläufe und Top-Server, deren **Name „BaLuBB“ oder „Bot“ enthält** (ohne Beachtung der
+Groß-/Kleinschreibung, als Teilwort: „Botschaft“ würde ebenfalls passen). Der Filter wirkt schon beim Erzeugen des Snapshots, die
+anderen Namen werden also gar nicht erst veröffentlicht (auch nicht verschlüsselt). Summen über alle Server (Gesamtlage,
+Tickets, Bewerbungen, Moderation, Dashboard-Aktivität, Cloudflare) lassen sich nicht nach Namen aufteilen und bleiben unverändert;
+die Ablauf-Zahlen „Läufe/Fehler“ der API zählen alle Abläufe und sind entsprechend gekennzeichnet. Ändern: *Settings → Secrets and
+variables → Actions → Variables →* `NAME_FILTER` (kommagetrennt, z. B. `BaLuBB,Bot,Status`; `off` schaltet den Filter ab).
 
 ### Aktualisierung, Verlauf, Grenzen
 
@@ -82,7 +99,7 @@ keine Nutzernamen, IDs oder Nachrichten.
 npm install
 npm run demo                       # baut die Seite und einen verschlüsselten Demo-Snapshot (Passwort: demo-passwort-123)
 cd dist-pages && python3 -m http.server 8099
-# http://127.0.0.1:8099/  oder für den TV-Modus  http://127.0.0.1:8099/#tv&pw=demo-passwort-123
+# Diashow: http://127.0.0.1:8099/#demo-passwort-123   Cockpit: http://127.0.0.1:8099/#cockpit&demo-passwort-123
 ```
 
 ---

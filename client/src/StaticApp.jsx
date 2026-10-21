@@ -78,25 +78,25 @@ export default function StaticApp() {
   const logout = () => { store.clear(); setSnap(null); setPassword(''); setInput(''); setTrying(false); };
   const copyTv = async () => {
     const link = tvLink(password);
-    try { await navigator.clipboard.writeText(link); window.alert('TV-Link kopiert. Er enthält das Passwort, bitte nur auf dem Fernseher verwenden.'); }
-    catch { window.prompt('TV-Link (enthält das Passwort):', link); }
+    try { await navigator.clipboard.writeText(link); window.alert('Link für die Diashow kopiert. Er enthält das Passwort, bitte nur auf dem Fernseher verwenden.'); }
+    catch { window.prompt('Link für die Diashow (enthält das Passwort):', link); }
   };
 
-  if (opts.tv) {
-    if (snap) return <Tv snap={snap} connLostSince={lostSince} slideSec={opts.slideSec} theme={opts.theme} />;
-    if (!candidate) return <TvMessage theme={opts.theme} title="BaLuBB System" text="Noch kein Passwort gespeichert. Einmalig den TV-Link öffnen (…#tv&pw=…), danach merkt sich der Fernseher es. Den Link erzeugt der Knopf „TV-Link“ im normalen Modus." />;
-    if (error === 'Falsches Passwort') return <TvMessage theme={opts.theme} title="Passwort falsch" text="Bitte den TV-Link mit dem aktuellen Passwort erneut öffnen." />;
+  if (opts.tv && snap) return <Tv snap={snap} connLostSince={lostSince} slideSec={opts.slideSec} theme={opts.theme} />;
+  if (!opts.tv && snap) return <Cockpit snap={snap} error={error} onLogout={logout} onTvLink={copyTv} />;
+
+  // Unbeaufsichtigt (Fernseher) mit Passwort aus Link oder Speicher: Meldungen statt Eingabefeld
+  if (opts.tv && candidate && !(error === 'Falsches Passwort' && !opts.pw)) {
+    if (error === 'Falsches Passwort') return <TvMessage theme={opts.theme} title="Passwort falsch" text="Bitte den Link mit dem aktuellen Passwort erneut öffnen." />;
     return <TvMessage theme={opts.theme} title="BaLuBB System" text={error ? `${error} – neuer Versuch alle 30 Sekunden …` : 'Lade Daten …'} />;
   }
-
-  if (snap) return <Cockpit snap={snap} error={error} onLogout={logout} onTvLink={copyTv} />;
   if (trying) return <Loading />;
 
   return (
     <div className="cp cp-login">
       <form className="cp-card" onSubmit={submit}>
         <h1>BaLuBB System</h1>
-        <p className="muted">Bitte Passwort eingeben. Die Daten werden erst in deinem Browser entschlüsselt.</p>
+        <p className="muted">Bitte Passwort eingeben (einmalig, danach merkt sich der Browser es). Die Daten werden erst in deinem Browser entschlüsselt.</p>
         <label className="sr" htmlFor="pw">Passwort</label>
         <input id="pw" className="cp-input" type="password" autoFocus autoComplete="current-password" placeholder="Passwort" value={input} onChange={(e) => setInput(e.target.value)} />
         <label className="cp-check"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Auf diesem Gerät angemeldet bleiben</label>
