@@ -22,7 +22,7 @@ const maintenance = [{ title: 'Wartung beim Domain-Anbieter (Sicherheitsupdates)
 const stats = series(90, (date, i) => ({ date, messages: Math.round(300 + 400 * rnd() + i * 3), voice_hours: +(8 + rnd() * 30).toFixed(1), joins: Math.round(rnd() * 9), leaves: Math.round(rnd() * 6), tickets_created: Math.round(rnd() * 5), tickets_closed: Math.round(rnd() * 5), applications: Math.round(rnd() * 3), moderation: Math.round(rnd() * 4) }));
 const top = (days) => ({ time: iso(now), days, ranked_by: 'messages', servers_with_data: 9, items: Array.from({ length: 9 }, (_, i) => {
   const f = days / 30;
-  return { rank: i + 1, id: `s${i}`, name: ['Community Zentrale', 'Gaming Lounge', 'Support Hub', 'Creator Club', 'Dev Treff', 'Musik Raum', 'Clan Nord', 'Test Server', 'Anime Corner'][i],
+  return { rank: i + 1, id: `s${i}`, name: ['BaLuBB Community', 'Bot Lounge', 'Support Hub', 'Creator Club', 'Dev Treff', 'Musik Raum', 'Clan Nord', 'Test Server', 'Anime Corner'][i],
     member_count: Math.round(2400 / (i + 1) + 40), online_count: Math.round(600 / (i + 1)), activation_status: i < 8 ? 'active' : 'deactivated',
     messages: Math.round((1200 / (i + 1)) * f), active_chatters: Math.round((90 / (i + 1)) * Math.min(f, 1.5)), voice_hours: +((60 / (i + 1)) * f).toFixed(1), joins: Math.round((30 / (i + 1)) * f), leaves: Math.round((12 / (i + 1)) * f), net_members: Math.round((18 / (i + 1)) * f),
     tickets: { total: Math.round(40 / (i + 1)), open: Math.round(4 / (i + 1)), closed: Math.round(36 / (i + 1)), created: Math.round((9 / (i + 1)) * f) },

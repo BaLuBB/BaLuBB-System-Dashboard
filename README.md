@@ -76,7 +76,7 @@ keine Nutzernamen, IDs oder Nachrichten.
 
 Angezeigt werden nur Dienste, Abläufe, Top-Server und die Listen unter „Zu erledigen“ (Aktivierungen, Feedback, Custom-Bot-Anfragen), deren **Name „BaLuBB“ oder „Bot“ enthält** (ohne Beachtung der
 Groß-/Kleinschreibung, als Teilwort: „Botschaft“ würde ebenfalls passen). Der Filter wirkt schon beim Erzeugen des Snapshots, die
-anderen Namen werden also gar nicht erst veröffentlicht (auch nicht verschlüsselt). Summen über alle Server (Gesamtlage,
+anderen Namen werden also gar nicht erst veröffentlicht (auch nicht verschlüsselt). Die Gesamtlage (Nachrichten, Sprachstunden, Beitritte/Abgänge) wird aus den Tagesverläufen der passenden Server neu zusammengesetzt, Tickets/Bewerbungen/Moderation stehen je passendem Server bei Support. Summen über alle Server, die sich nicht aufteilen lassen (Dashboard-Aktivität; ohne Filter: Gesamtlage,
 Tickets, Bewerbungen, Moderation, Dashboard-Aktivität, Cloudflare) lassen sich nicht nach Namen aufteilen und bleiben unverändert;
 die Ablauf-Zahlen „Läufe/Fehler“ der API zählen alle Abläufe und sind entsprechend gekennzeichnet. Ändern: *Settings → Secrets and
 variables → Actions → Variables →* `NAME_FILTER` (kommagetrennt, z. B. `BaLuBB,Bot,Status`; `off` schaltet den Filter ab).

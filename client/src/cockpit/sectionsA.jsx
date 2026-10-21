@@ -123,7 +123,7 @@ export function OverviewSection({ snap, range }) {
   const g = source(snap, 'statsGlobal');
   if (g.hidden) return null;
   return (
-    <Section id="lage" title="Gesamtlage" sub={`alle Server, letzte ${range} Tage`}>
+    <Section id="lage" title="Gesamtlage" sub={g.available && g.data.derived ? `nur gefilterte Server, letzte ${range} Tage` : `alle Server, letzte ${range} Tage`}>
       {!g.available ? <Card><Unavailable what="Statistik" /></Card> : (() => {
         const daily = lastN(g.data.daily, range);
         if (!daily.length) return <Card><Empty>Für diesen Zeitraum liegen noch keine Daten vor.</Empty></Card>;

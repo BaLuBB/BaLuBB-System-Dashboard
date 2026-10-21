@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseKeywords, makeMatcher, applyNameFilter, filterHistory, DEFAULT_KEYWORDS, ALL_SERVER_SOURCES } from '../client/src/cockpit/filter.js';
+import { parseKeywords, makeMatcher, applyNameFilter, filterHistory, DEFAULT_KEYWORDS, ALL_SERVER_SOURCES, statsFromServers } from '../client/src/cockpit/filter.js';
 
 test('Filter: Stichwörter und Standard', () => {
   assert.deepEqual(parseKeywords(''), DEFAULT_KEYWORDS);
@@ -87,4 +87,18 @@ test('Filter: Zu-erledigen-Listen zeigen nur passende Server, Zähler folgen, Te
 test('Filter: ohne Stichwörter bleiben die Gesamtstatistiken sichtbar', () => {
   const s = applyNameFilter(sources(), []);
   for (const k of ALL_SERVER_SOURCES) assert.equal(s[k].available, true, k);
+});
+
+test('Filter: Gesamtlage wird aus den Tagesverläufen der passenden Server zusammengesetzt', () => {
+  const day = (date, m) => ({ date, messages: m, voice_hours: 1, joins: 2, leaves: 1 });
+  const top = ok({ days: 30, items: [
+    { name: 'BaLuBB Treff', messages: 10, active_chatters: 3, daily: [day('2026-10-01', 4), day('2026-10-02', 6)] },
+    { name: 'Bot Club', messages: 5, active_chatters: 2, daily: [day('2026-10-02', 5)] },
+    { name: 'Community', messages: 99, daily: [day('2026-10-01', 99)] }] });
+  const s = applyNameFilter({ ...sources(), serversTop90: top, statsGlobal: ok({ daily: [day('2026-10-01', 1000)] }) }, ['BaLuBB', 'Bot']);
+  const g = s.statsGlobal.data;
+  assert.equal(s.statsGlobal.available, true);
+  assert.deepEqual(g.daily.map((d) => [d.date, d.messages, d.joins]), [['2026-10-01', 4, 2], ['2026-10-02', 11, 4]], 'Community (99) und die Summe über alle (1000) fehlen');
+  assert.deepEqual([g.servers_with_activity, g.active_chatters, g.derived], [2, 5, true]);
+  assert.equal(statsFromServers({ available: true, data: { items: [{ name: 'x' }] } }), null, 'ohne Verläufe nichts erfinden');
 });
