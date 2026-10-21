@@ -48,6 +48,22 @@ export function TvMessage({ title, text, theme = 'dark' }) {
 
 const ICON = { warn: '▲', crit: '✕', maint: '◆' };
 
+/** Symbole der Kategorien (Linien, 24 px) */
+const Ico = ({ children }) => (
+  <svg className="ico" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
+);
+const CAT_ICON = {
+  Überblick: <Ico><rect x="3" y="3" width="8" height="9" rx="2" /><rect x="13" y="3" width="8" height="5" rx="2" /><rect x="13" y="11" width="8" height="10" rx="2" /><rect x="3" y="15" width="8" height="6" rx="2" /></Ico>,
+  Server: <Ico><rect x="3" y="4" width="18" height="7" rx="2" /><rect x="3" y="13" width="18" height="7" rx="2" /><path d="M7 7.5h.01M7 16.5h.01" /></Ico>,
+  Aktivität: <Ico><path d="M3 17l6-6 4 4 8-9" /><path d="M15 6h6v6" /></Ico>,
+  'Top-Server': <Ico><path d="M5 20v-7M12 20V4M19 20v-10" /></Ico>,
+  Abläufe: <Ico><path d="M17 2l4 4-4 4" /><path d="M3 11V9a3 3 0 013-3h15" /><path d="M7 22l-4-4 4-4" /><path d="M21 13v2a3 3 0 01-3 3H3" /></Ico>,
+  Support: <Ico><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3.5" /><path d="M5.6 5.6l3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9" /></Ico>,
+  Cloudflare: <Ico><path d="M7 18a4.5 4.5 0 010-9 6 6 0 0111.4 1.6A3.7 3.7 0 0118 18H7z" /></Ico>,
+  System: <Ico><rect x="6" y="6" width="12" height="12" rx="2" /><rect x="9.5" y="9.5" width="5" height="5" rx="1" /><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" /></Ico>,
+  Dashboard: <Ico><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1" /><circle cx="15" cy="7" r="2" /><circle cx="9" cy="12" r="2" /><circle cx="17" cy="17" r="2" /></Ico>,
+};
+
 /** Kennzeichen je Kategorie: nur bei Auffälligkeiten ein Symbol (nie Farbe allein). */
 function categoryStates(snap, st) {
   const servers = dataOf(snap, 'servers')?.items ?? dataOf(snap, 'health')?.servers?.items ?? [];
@@ -113,12 +129,13 @@ export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' 
           <nav className="tv-cats" aria-label="Kategorien">
             {slides.map((s, i) => {
               const state = states[s.name];
+              const on = i === at;
               return (
-                <div key={s.name} className={`tv-cat${i === at ? ' on' : ''}`} aria-current={i === at ? 'true' : undefined}>
-                  <span className="num">{i + 1}</span>
+                <div key={s.name} className={`tv-cat${on ? ' on' : ''}`} aria-current={on ? 'true' : undefined}>
+                  {on && <span className="fill" key={idx} style={{ animationDuration: `${slideSec}s` }} />}
+                  {CAT_ICON[s.name]}
                   <span className="name">{s.name}</span>
-                  {state && <i className="ind" data-state={state} aria-label={state === 'crit' ? 'Fehler' : 'Warnung'}>{ICON[state]}</i>}
-                  {i === at && <span className="prog" key={idx} style={{ animationDuration: `${slideSec}s` }} />}
+                  {state && <i className="ind" data-state={state} role="img" aria-label={state === 'crit' ? 'Fehler' : 'Warnung'}>{ICON[state]}</i>}
                 </div>
               );
             })}
