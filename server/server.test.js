@@ -77,22 +77,52 @@ test('Cloudflare-Client: ohne Token/Zone nicht konfiguriert', async () => {
   assert.deepEqual(await createCloudflareClient({ token: '', zone: 'z' })(), { configured: false });
 });
 
-test('Cloudflare-Client: sendet Token, cached, Token nicht in Antwort', async () => {
-  let calls = 0, auth, vars;
-  const get = createCloudflareClient({
-    token: 'tok-geheim', zone: 'zone1', days: 2, ttlMs: 60_000,
-    fetchImpl: async (_u, o) => { calls++; auth = o.headers.Authorization; vars = JSON.parse(o.body).variables;
-      return { ok: true, status: 200, json: async () => ({ data: { viewer: { zones: [{ httpRequests1dGroups: cfGroups }] } } }) }; },
-  });
-  const a = await get(); await get();
-  assert.equal(calls, 1);
-  assert.equal(auth, 'Bearer tok-geheim');
-  assert.equal(vars.zone, 'zone1');
+// Mock: antwortet je nach Abfrage-Text wie die echte GraphQL-/REST-API
+const cfRouter = ({ failing = [], calls = [] } = {}) => async (url, o) => {
+  const ok = (json) => ({ ok: true, status: 200, json: async () => json });
+  if (!String(url).endsWith('/graphql')) return ok({ result: { account: { id: 'acc1' } } });
+  const { query, variables } = JSON.parse(o.body);
+  calls.push({ auth: o.headers.Authorization, variables });
+  const z = (field, rows) => ok({ data: { viewer: { zones: [{ [field]: rows }] } } });
+  if (query.includes('httpRequests1dGroups')) return z('httpRequests1dGroups', cfGroups);
+  if (failing.includes('hourly') && query.includes('httpRequests1hGroups')) return ok({ errors: [{ message: 'nope' }] });
+  if (query.includes('httpRequests1hGroups')) return z('httpRequests1hGroups', [{ dimensions: { datetime: 'T1' }, sum: { requests: 5, cachedRequests: 2, threats: 0 } }]);
+  if (query.includes('securityAction')) return z('httpRequestsAdaptiveGroups', [
+    { count: 7, dimensions: { securityAction: 'block', securitySource: 'waf' } },
+    { count: 3, dimensions: { securityAction: 'block', securitySource: 'firewallrules' } },
+    { count: 90, dimensions: { securityAction: '', securitySource: '' } }]);
+  if (query.includes('clientRequestPath')) return z('httpRequestsAdaptiveGroups', [{ count: 40, dimensions: { clientRequestPath: '/' } }]);
+  if (query.includes('rumPageload')) return ok({ data: { viewer: { accounts: [{ rumPageloadEventsAdaptiveGroups: [{ count: 12, sum: { visits: 8 }, dimensions: { requestPath: '/' } }] }] } } });
+  return ok({});
+};
+
+test('Cloudflare-Client: alle Teile, Token als Bearer, Cache, Token nicht in Antwort', async () => {
+  const calls = [];
+  const get = createCloudflareClient({ token: 'tok-geheim', zone: 'zone1', days: 2, ttlMs: 60_000, fetchImpl: cfRouter({ calls }) });
+  const a = await get();
+  const n = calls.length;
+  await get();
+  assert.equal(calls.length, n, 'zweiter Aufruf kommt aus dem Cache');
+  assert.ok(calls.every((c) => c.auth === 'Bearer tok-geheim'));
   assert.equal(a.data.totals.requests, 150);
+  assert.ok(Array.isArray(a.data.days) && a.data.days.length === 2, 'days ist die Tagesliste');
+  assert.deepEqual(a.data.security.actions[0], { action: 'keine', requests: 90 });
+  assert.deepEqual(a.data.security.sources.find((s) => s.source === 'waf'), { source: 'waf', requests: 7 });
+  assert.equal(a.data.paths[0].path, '/');
+  assert.equal(a.data.hourly.length, 1);
+  assert.deepEqual([a.data.web.enabled, a.data.web.visits], [true, 8]);
+  assert.deepEqual(a.data.partErrors, {});
   assert.ok(!JSON.stringify(a).includes('tok-geheim'));
 });
 
-test('Cloudflare-Client: Fehlerfälle', async () => {
+test('Cloudflare-Client: Teilfehler blockieren die Kachel nicht', async () => {
+  const a = await createCloudflareClient({ token: 't', zone: 'z', ttlMs: 0, fetchImpl: cfRouter({ failing: ['hourly'] }) })();
+  assert.equal(a.data.totals.requests, 150);
+  assert.equal(a.data.hourly, null);
+  assert.match(a.data.partErrors.hourly, /nope/);
+});
+
+test('Cloudflare-Client: Fehler im Hauptteil', async () => {
   const mk = (resp) => createCloudflareClient({ token: 't', zone: 'z', ttlMs: 0, fetchImpl: async () => resp })();
   assert.match((await mk({ ok: false, status: 403, json: async () => ({}) })).error, /HTTP 403/);
   assert.match((await mk({ ok: true, status: 200, json: async () => ({ errors: [{ message: 'not authorized' }] }) })).error, /not authorized/);

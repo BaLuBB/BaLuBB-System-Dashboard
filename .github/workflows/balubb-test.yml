@@ -4,17 +4,15 @@ jobs:
   health:
     runs-on: ubuntu-latest
     steps:
-      - name: Health-Check
+      - name: Health-Check (ohne Daten im öffentlichen Log)
         env:
           BALUBB_API_KEY: ${{ secrets.BALUBB_API_KEY }}
         run: |
-          # Key-Form prüfen, ohne ihn auszugeben
-          echo "Key gesetzt: $([ -n "$BALUBB_API_KEY" ] && echo ja || echo NEIN), Länge: ${#BALUBB_API_KEY}"
-          case "$BALUBB_API_KEY" in [Bb]earer*) echo "WARNUNG: Key beginnt mit 'Bearer'";; esac
-          # Status, Antwort-Header und Body anzeigen; bei HTTP >= 400 fehlschlagen
-          curl -sS -i -o response.txt -w "HTTP %{http_code}\n" \
+          # Logs öffentlicher Repos sind öffentlich: nur Status und Feldnamen ausgeben, keine Werte
+          code=$(curl -sS -o body.json -w "%{http_code}" \
             -H "Authorization: Bearer $BALUBB_API_KEY" \
-            https://bot.balubb.de/api/ext/v1/health | tee status.txt
-          cat response.txt
-          echo
-          grep -q "HTTP [23]" status.txt
+            https://bot.balubb.de/api/ext/v1/health)
+          echo "HTTP $code"
+          jq -r 'keys | "Felder: " + join(", ")' body.json
+          jq -r '"ok = \(.ok), Server \(.servers.running)/\(.servers.total)"' body.json
+          [ "$code" = "200" ]

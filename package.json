@@ -8,7 +8,7 @@
     "dev": "concurrently -n api,web -c blue,green \"node --watch server/index.js\" \"vite\"",
     "build": "vite build",
     "start": "node server/index.js",
-    "test": "node --test server/server.test.js server/snapshot.test.js",
+    "test": "node --test server/server.test.js server/snapshot.test.js server/history.test.js server/alerts.test.js",
     "build:pages": "VITE_STATIC=1 vite build --base ./ --outDir ../dist-pages && node scripts/build-snapshot.mjs dist-pages"
   },
   "dependencies": {
@@ -16,10 +16,10 @@
     "systeminformation": "^5.23.8"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^6.1.2",
     "concurrently": "^9.1.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "vite": "^5.4.11"
+    "vite": "^8.3.5"
   }
 }
