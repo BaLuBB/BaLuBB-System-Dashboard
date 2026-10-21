@@ -1,5 +1,5 @@
-// Optionen aus dem URL-Fragment (#pw=...&slide=20&theme=dark, #cockpit für die interaktive Ansicht).
-// Das Fragment wird nie an einen Server gesendet. Ohne Angabe läuft die Diashow (ohne Bedienung).
+// Die Adresse .../tv zeigt die Diashow, die Startseite das interaktive Cockpit.
+// Optionen aus dem URL-Fragment: #pw=...&slide=20&theme=dark. Das Fragment wird nie an einen Server gesendet.
 const decode = (s) => { try { return decodeURIComponent(s); } catch { return s; } };
 
 const KEYWORDS = new Set(['tv', 'cockpit']);
@@ -7,11 +7,14 @@ const SAFE_PASSWORD = /^[\w.~-]+$/; // Buchstaben, Ziffern, Punkt, Tilde, Bindes
 
 /**
  * Link-Formen für den Fernseher, von kurz nach lang:
- *   .../            Passwort einmal im Eingabefeld tippen, danach merkt sich der Browser es
- *   .../#passwort   Kurzform: ein einzelnes Wort nach dem # ist das Passwort
- *   .../#pw=passwort&slide=30&theme=light   mit Optionen
+ *   .../tv            Passwort einmal im Eingabefeld tippen, danach merkt sich der Browser es
+ *   .../tv#passwort   Kurzform: ein einzelnes Wort nach dem # ist das Passwort
+ *   .../tv#pw=passwort&slide=30&theme=light   mit Optionen
+ * Die Startseite (.../) zeigt das interaktive Cockpit; #tv an der Startseite öffnet ebenfalls die Diashow.
  */
-export function readOptions(hash = typeof location === 'undefined' ? '' : location.hash) {
+export const isTvPath = (pathname) => /\/tv\/?$/.test(pathname);
+
+export function readOptions(hash = typeof location === 'undefined' ? '' : location.hash, pathname = typeof location === 'undefined' ? '/' : location.pathname) {
   const map = new Map();
   let bare = '';
   for (const part of hash.replace(/^#/, '').split('&')) {
@@ -21,10 +24,11 @@ export function readOptions(hash = typeof location === 'undefined' ? '' : locati
     map.set(decode(part.slice(0, i)), decode(part.slice(i + 1)));
   }
   const slide = Number(map.get('slide'));
+  const tv = !map.has('cockpit') && (isTvPath(pathname) || map.has('tv')); // true = Diashow
   return {
-    cockpit: map.has('cockpit'),
-    tv: !map.has('cockpit'), // true = Diashow
-    explicitTv: map.has('tv'),
+    cockpit: !tv,
+    tv,
+    explicitTv: tv,
     pw: map.get('pw') ?? bare,
     slideSec: Number.isFinite(slide) && slide >= 3 ? slide : 20,
     theme: map.get('theme') === 'light' ? 'light' : 'dark',

@@ -32,14 +32,14 @@ violett Wartung), nie allein, immer mit Symbol und Text. Schriften (Inter, Space
 
 ### Fernseher: Diashow ohne Bedienung
 
-Die Startseite ist eine **Diashow**: eine Bildschirmseite, die alle 20 Sekunden zur nächsten Kategorie wechselt. Unten steht die
+Die Adresse **`…/tv`** zeigt die **Diashow**: eine Bildschirmseite, die alle 20 Sekunden zur nächsten Kategorie wechselt. Unten steht die
 Kategorie-Leiste (Überblick, Server, Aktivität, Top-Server, Abläufe, Support, Cloudflare, System, Dashboard) mit Fortschrittsbalken;
-Kategorien mit Auffälligkeiten tragen ein Symbol. Es gibt nichts zu bedienen.
+Kategorien mit Auffälligkeiten tragen ein Symbol; ein Klick auf eine Kategorie springt dorthin. Die Startseite (`…/`) bleibt das normale, interaktive Cockpit.
 
 **Der kürzeste Link (zum Eintippen mit der Fernbedienung):**
 
 ```
-balubb.github.io/BaLuBB-System-Dashboard
+balubb.github.io/BaLuBB-System-Dashboard/tv
 ```
 
 Beim ersten Mal erscheint ein großes Passwortfeld. Passwort tippen, Enter. Danach **merkt sich der Fernseher das Passwort im Browser-Speicher**
@@ -53,7 +53,7 @@ Daten mit Hinweis. Optionen im Link: `slide=30` (Sekunden je Kategorie, mindeste
 Wird das Passwort geändert, den Link einmal mit dem neuen Passwort öffnen. Auf gemeinsam genutzten Rechnern beim Anmelden
 „Auf diesem Gerät angemeldet bleiben“ abwählen.
 
-**Interaktives Cockpit** (Handy, Desktop): `…/#cockpit` mit Zeitraum 7/30/90 Tage, Hell/Dunkel, aufklappbaren Zeilen; „Abmelden“ löscht das gespeicherte Passwort.
+**Interaktives Cockpit** (Handy, Desktop): die Startseite `…/` mit Zeitraum 7/30/90 Tage, Hell/Dunkel, aufklappbaren Zeilen; „Abmelden“ löscht das gespeicherte Passwort.
 
 ### Einrichtung
 
@@ -100,7 +100,7 @@ Fest ausgeblendet ist außerdem der Server **„Test Bot 1“** (exakter Name, `
 npm install
 npm run demo                       # baut die Seite und einen verschlüsselten Demo-Snapshot (Passwort: demo-passwort-123)
 cd dist-pages && python3 -m http.server 8099
-# Diashow: http://127.0.0.1:8099/tv#demo-passwort-123   Cockpit: http://127.0.0.1:8099/#cockpit&demo-passwort-123
+# Diashow: http://127.0.0.1:8099/tv#demo-passwort-123   Cockpit: http://127.0.0.1:8099/#demo-passwort-123
 ```
 
 ---
