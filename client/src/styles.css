@@ -34,3 +34,4 @@ th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line
 th { color: var(--muted); font-weight: 500; }
 .maint { margin-top: 12px; padding: 10px; border-left: 3px solid var(--warn); background: var(--bg); border-radius: 4px; }
 .maint p { margin: 4px 0 0; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 8px; }

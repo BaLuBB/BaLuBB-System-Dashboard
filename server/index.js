@@ -4,6 +4,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { collect, staticInfo } from './collector.js';
 import { createBalubbClient } from './balubb.js';
+import { createCloudflareClient } from './cloudflare.js';
 
 const PORT = Number(process.env.PORT ?? 3000);
 // Standard: nur lokal. Für Kollegen im Netz: HOST=0.0.0.0 (und TOKEN setzen!)
@@ -17,7 +18,7 @@ const tokenOk = (given = '') => {
   return a.length === b.length && timingSafeEqual(a, b);
 };
 
-export function createApp({ sample = collect, info = staticInfo, balubb = createBalubbClient() } = {}) {
+export function createApp({ sample = collect, info = staticInfo, balubb = createBalubbClient(), cloudflare = createCloudflareClient() } = {}) {
   const app = express();
   let latest = null;
   let infoCache = null;
@@ -52,6 +53,7 @@ export function createApp({ sample = collect, info = staticInfo, balubb = create
   });
 
   app.get('/api/balubb', async (_req, res) => res.json(await balubb()));
+  app.get('/api/cloudflare', async (_req, res) => res.json(await cloudflare()));
 
   const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist');
   app.use(express.static(dist));
