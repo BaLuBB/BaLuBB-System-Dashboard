@@ -106,19 +106,20 @@ export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' 
   // Eine leere Kategorie (kein Server passt zum Namensfilter) läuft nicht in der Diashow mit
   const topNow = topServers(snap, 30, 'messages', 1);
   const topEmpty = topNow.available && topNow.items.length === 0;
+  const hidden = (...keys) => keys.every((k) => snap.balubb?.sources?.[k]?.hidden); // Gesamtstatistiken sind bei aktivem Namensfilter ausgeblendet
 
   const slides = useMemo(() => {
     const list = [
       { name: 'Überblick', hf: 0.7, body: <OverviewSlide snap={snap} now={now} /> },
       { name: 'Server', hf: 0.62, body: <ServerSlide snap={snap} now={now} /> },
-      { name: 'Aktivität', hf: 0.5, body: <div className="tv-lage"><OverviewSection snap={snap} range={30} /></div> },
+      { name: 'Aktivität', hf: 0.5, body: <div className="tv-lage"><OverviewSection snap={snap} range={30} /></div>, skip: hidden('statsGlobal') },
       { name: 'Top-Server', hf: 0.7, body: <TopBarsSlide snap={snap} />, skip: topEmpty },
       { name: 'Abläufe', hf: 0.95, body: <AutomationsSection snap={snap} /> },
-      { name: 'Support', hf: 0.85, body: <SupportSection snap={snap} range={30} /> },
+      { name: 'Support', hf: 0.85, body: <SupportSection snap={snap} range={30} />, skip: hidden('tickets', 'applications', 'moderation') },
     ];
     if (hasCf) list.push({ name: 'Cloudflare', hf: 0.5, body: <CloudflareSection snap={snap} range={30} /> });
     list.push({ name: 'System', hf: 0.7, body: <div className="tv-stack"><SystemSection snap={snap} /><ReleasesSection snap={snap} limit={4} /></div> });
-    list.push({ name: 'Dashboard', hf: 1.1, body: <ActivitySection snap={snap} range={30} /> });
+    list.push({ name: 'Dashboard', hf: 1.1, body: <ActivitySection snap={snap} range={30} />, skip: hidden('dashboardActivity') });
     return list.filter((x) => !x.skip);
   }, [snap, now, hasCf, topEmpty]);
 

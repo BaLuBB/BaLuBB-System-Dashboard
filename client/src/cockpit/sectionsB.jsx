@@ -59,6 +59,7 @@ const MOD = [['warn', 'Verwarnungen', 'var(--ramp-1)'], ['mute', 'Stummschaltung
 
 export function SupportSection({ snap, range }) {
   const t = source(snap, 'tickets'), ap = source(snap, 'applications'), mo = source(snap, 'moderation');
+  if (t.hidden && ap.hidden && mo.hidden) return null;
   return (
     <Section id="support" title="Tickets, Bewerbungen, Moderation" sub={`letzte ${range} Tage`}>
       <div className="cp-grid cols-3">
@@ -139,6 +140,7 @@ export function SystemSection({ snap }) {
 /* ---------- Aktivität im Dashboard ---------- */
 export function ActivitySection({ snap, range, compact = false }) {
   const act = source(snap, 'dashboardActivity');
+  if (act.hidden) return null;
   return (
     <Section id="aktivitaet" title="Aktivität im Dashboard" sub={`letzte ${range} Tage, nur Zahlen je Art und Tag`}>
       {!act.available ? <Card><Unavailable /></Card> : (() => {
@@ -247,10 +249,10 @@ export function Footer({ snap }) {
   const cf = snap.cloudflare;
   return (
     <footer className="cp-footer">
-      {snap.filter?.keywords?.length > 0 && <div>Filter: Dienste, Abläufe und Top-Server nur mit {filterLabel(snap.filter.keywords)} im Namen. Summen über alle Server bleiben unverändert.</div>}
+      {snap.filter?.keywords?.length > 0 && <div>Filter: Dienste, Abläufe und Top-Server nur mit {filterLabel(snap.filter.keywords)} im Namen. Statistiken über alle Server (Gesamtlage, Tickets, Bewerbungen, Moderation, Dashboard-Aktivität) sind ausgeblendet; je Server stehen die Zahlen bei Top-Server.</div>}
       <div>Nur lesen · Datenquellen: BaLuBB-API und Cloudflare-Analysen · Version {typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '1'} · Stand {new Date(snap.generatedAt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}</div>
       <div className="cp-sources" aria-label="Zustand der Datenquellen">
-        {states.map((s) => <span key={s.name} className={s.available ? 'ok' : 'bad'} title={s.error}>{LABEL[s.name] ?? s.name}{s.available ? '' : ' (gerade nicht verfügbar)'}</span>)}
+        {states.filter((s) => !s.hidden).map((s) => <span key={s.name} className={s.available ? 'ok' : 'bad'} title={s.error}>{LABEL[s.name] ?? s.name}{s.available ? '' : ' (gerade nicht verfügbar)'}</span>)}
         {cf && cf.configured !== false && <span className={cf.error ? 'bad' : 'ok'}>Cloudflare{cf.error ? ' (gerade nicht verfügbar)' : ''}</span>}
       </div>
     </footer>

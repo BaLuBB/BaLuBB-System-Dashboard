@@ -312,4 +312,10 @@ body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger 
 .cp-tv .tv-zoom > .tv-stack > .cp-section { display: flex; flex-direction: column; }
 .cp-tv .tv-zoom > .tv-stack > .cp-section:last-child, .cp-tv .tv-lage > .cp-section { flex: 1 1 auto; }
 .cp-tv .tv-zoom > .tv-stack > .cp-section:last-child > :last-child { flex: 1 1 auto; }
-.cp-tv .tv-servers .cp-card { align-content: space-evenly; }
+.cp-tv .tv-servers .cp-card { align-content: start; }
+
+/* Serverzeilen: CPU, Speicher, Platte immer gleich aufgebaut (Name und Prozent, Balken, Wert), alles auf einer Linie */
+.cp-srv .vals { align-items: start; }
+.cp-slim { display: grid; grid-template-rows: auto auto auto; align-content: start; align-self: start; min-width: 0; }
+.cp-slim .row { justify-content: space-between; min-width: 0; gap: 6px; }
+.cp-slim .sub { min-height: 1.3em; line-height: 1.3; }

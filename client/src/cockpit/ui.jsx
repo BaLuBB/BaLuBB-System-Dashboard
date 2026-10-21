@@ -41,7 +41,7 @@ export function Slim({ label, value, text, sub, warnAt = 80, critAt = 92 }) {
       <div className="track" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={known ? Math.round(value) : undefined}>
         <div className="fill" data-tone={tone} style={{ width: `${known ? Math.min(100, Math.max(0, value)) : 0}%` }} />
       </div>
-      {sub && <div className="sub">{sub}</div>}
+      <div className="sub" aria-hidden={sub ? undefined : 'true'}>{sub || '\u00a0'}</div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseKeywords, makeMatcher, applyNameFilter, filterHistory, DEFAULT_KEYWORDS } from '../client/src/cockpit/filter.js';
+import { parseKeywords, makeMatcher, applyNameFilter, filterHistory, DEFAULT_KEYWORDS, ALL_SERVER_SOURCES } from '../client/src/cockpit/filter.js';
 
 test('Filter: Stichwörter und Standard', () => {
   assert.deepEqual(parseKeywords(''), DEFAULT_KEYWORDS);
@@ -30,6 +30,7 @@ const sources = () => ({
   feedback: ok({ total: 8, new_count: 3, new: [{ server: 'Test Bot 1', text: 'x' }, { server_name: 'Bot Club', text: 'y' }, { text: 'ohne Servernamen' }] }),
   customBotRequests: ok({ total: 2, open_count: 1, open: [{ guild_name: 'Kochfreunde' }] }),
   tickets: ok({ total: 9 }),
+  applications: ok({ total: 4 }), moderation: ok({ totals: {} }), statsGlobal: ok({ daily: [] }), dashboardActivity: ok({ daily: [] }),
 });
 
 test('Filter: Dienste, Top-Server und Abläufe nach Namen, Summen werden neu berechnet', () => {
@@ -46,7 +47,7 @@ test('Filter: Dienste, Top-Server und Abläufe nach Namen, Summen werden neu ber
   assert.equal(s.automationsHistory.data.aggregate_all, true);
   assert.deepEqual(s.overview.data.servers, { total: 2, running: 1 });
   assert.equal(s.overview.data.automations.errors_today, 1);
-  assert.equal(s.tickets.data.total, 9, 'Summen über alle bleiben');
+  for (const k of ALL_SERVER_SOURCES) assert.deepEqual([s[k].available, s[k].hidden], [false, true], `${k}: Summen über alle Server werden bei aktivem Filter nicht veröffentlicht`);
   assert.equal(s0.servers.data.items.length, 3, 'Original bleibt unverändert');
 });
 
@@ -81,4 +82,9 @@ test('Filter: Zu-erledigen-Listen zeigen nur passende Server, Zähler folgen, Te
   assert.equal(s.activations.data.total, 5, 'Gesamtzahlen bleiben');
   const off = applyNameFilter(sources(), []);
   assert.deepEqual(off.feedback.data.new.map((x) => x.text), ['y', 'ohne Servernamen'].filter((t) => t !== 'x'), 'ohne Stichwörter nur die Ausschlussliste');
+});
+
+test('Filter: ohne Stichwörter bleiben die Gesamtstatistiken sichtbar', () => {
+  const s = applyNameFilter(sources(), []);
+  for (const k of ALL_SERVER_SOURCES) assert.equal(s[k].available, true, k);
 });
