@@ -8,6 +8,17 @@ const REFRESH_MS = 2 * 60 * 1000;
 const RETRY_MS = 30 * 1000;
 const opts = readOptions();
 
+// Passwort im Browser-Speicher (localStorage) merken, damit der Fernseher nicht jedes Mal fragt.
+// Zugriffe sind abgesichert: im privaten Modus oder bei gesperrtem Speicher läuft die Seite einfach ohne.
+const KEY = 'balubb-status-pw';
+const store = {
+  get: () => { try { return localStorage.getItem(KEY) ?? ''; } catch { return ''; } },
+  set: (v) => { try { localStorage.setItem(KEY, v); } catch { /* Speicher nicht verfügbar */ } },
+  clear: () => { try { localStorage.removeItem(KEY); } catch { /* ignorieren */ } },
+};
+const stored = store.get();
+const candidate = opts.pw || stored; // Link-Passwort gewinnt und überschreibt danach den gespeicherten Wert
+
 async function load(password) {
   const res = await fetch(`./snapshot.enc.json?t=${Date.now()}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Noch kein Snapshot veröffentlicht');
@@ -26,6 +37,7 @@ export default function StaticApp() {
   const [error, setError] = useState(null);
   const [lostSince, setLostSince] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [remember, setRemember] = useState(true);
 
   useEffect(() => { document.documentElement.dataset.theme = opts.tv ? opts.theme : document.documentElement.dataset.theme ?? ''; }, []);
 
@@ -34,17 +46,22 @@ export default function StaticApp() {
     catch (e) { setError(e.message); setLostSince((t) => t ?? Date.now()); return false; }
   }, []);
 
-  // Automatische Anmeldung über #pw=... (Fernseher ohne Tastatur)
+  // Automatische Anmeldung mit dem Passwort aus dem Link (#pw=...) oder aus dem Browser-Speicher
   useEffect(() => {
-    if (!opts.pw) return undefined;
+    if (!candidate) return undefined;
     let stop = false;
-    (async () => { if (await refresh(opts.pw) && !stop) setPassword(opts.pw); })();
+    (async () => {
+      const ok = await refresh(candidate);
+      if (stop) return;
+      if (ok) { setPassword(candidate); store.set(candidate); }
+      else if (!opts.pw) store.clear(); // gespeichertes Passwort stimmt nicht mehr (z. B. geändert)
+    })();
     return () => { stop = true; };
   }, [refresh]);
 
-  // Regelmäßig aktualisieren; im TV-Modus ohne Daten alle 30 s erneut versuchen
+  // Regelmäßig aktualisieren; ohne Daten im TV-Modus alle 30 s erneut versuchen
   useEffect(() => {
-    const pw = password || (opts.tv ? opts.pw : '');
+    const pw = password || (opts.tv ? candidate : '');
     if (!pw) return undefined;
     const t = setInterval(async () => { if (await refresh(pw) && !password) setPassword(pw); }, snap ? REFRESH_MS : RETRY_MS);
     return () => clearInterval(t);
@@ -54,10 +71,10 @@ export default function StaticApp() {
     e.preventDefault();
     setBusy(true);
     const ok = await refresh(input);
-    if (ok) setPassword(input);
+    if (ok) { setPassword(input); if (remember) store.set(input); else store.clear(); }
     setBusy(false);
   };
-  const logout = () => { setSnap(null); setPassword(''); setInput(''); };
+  const logout = () => { store.clear(); setSnap(null); setPassword(''); setInput(''); };
   const copyTv = async () => {
     const link = tvLink(password);
     try { await navigator.clipboard.writeText(link); window.alert('TV-Link kopiert. Er enthält das Passwort, bitte nur auf dem Fernseher verwenden.'); }
@@ -66,8 +83,8 @@ export default function StaticApp() {
 
   if (opts.tv) {
     if (snap) return <TvView snap={snap} connLostSince={lostSince} slideSec={opts.slideSec} />;
-    if (!opts.pw) return <TvMessage title="BaLuBB Status" text="Im TV-Link fehlt das Passwort (…#tv&pw=…). Den Link im normalen Modus über „TV-Link“ erzeugen." />;
-    if (error === 'Falsches Passwort') return <TvMessage title="Passwort im Link falsch" text="Bitte den TV-Link neu erzeugen." />;
+    if (!candidate) return <TvMessage title="BaLuBB Status" text="Noch kein Passwort gespeichert. Einmalig den TV-Link öffnen (…#tv&pw=…), danach merkt sich der Fernseher es. Den Link erzeugt der Knopf „TV-Link“ im normalen Modus." />;
+    if (error === 'Falsches Passwort') return <TvMessage title="Passwort falsch" text="Bitte den TV-Link mit dem aktuellen Passwort erneut öffnen." />;
     return <TvMessage title="BaLuBB Status" text={error ? `${error} – neuer Versuch alle 30 Sekunden …` : 'Lade Daten …'} />;
   }
 
@@ -79,6 +96,7 @@ export default function StaticApp() {
           <p className="muted">Bitte Passwort eingeben. Die Daten werden erst in deinem Browser entschlüsselt.</p>
           <input type="password" autoFocus autoComplete="current-password" placeholder="Passwort"
             value={input} onChange={(e) => setInput(e.target.value)} />
+          <label className="check"><input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> Auf diesem Gerät angemeldet bleiben</label>
           <button disabled={busy || !input}>{busy ? 'Entschlüssle …' : 'Anmelden'}</button>
           {error && <p className="err">{error}</p>}
         </form>

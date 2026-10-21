@@ -1,28 +1,19 @@
-// Diagnose: liest die dokumentierten BaLuBB-Endpunkte und gibt NUR die Struktur aus (Typen, Anzahl), nie Werte.
-// Logs öffentlicher Repos sind öffentlich: keine Namen, Zahlen oder Texte ausgeben.
+// Diagnose: welche Parameter nimmt /servers/top? Ausgegeben werden nur Anzahl und Rangfolge, keine Namen oder Werte.
 const base = 'https://bot.balubb.de/api/ext/v1/';
 const auth = { Authorization: `Bearer ${process.env.BALUBB_API_KEY}` };
-const paths = [
-  'health', 'overview', 'servers', 'servers/top', 'maintenance', 'activations', 'feedback', 'custom-bot-requests',
-  'automations', 'automations/history?days=7', 'tickets', 'applications', 'moderation',
-  'stats/global?days=30', 'dashboard-activity?days=30', 'system', 'counts', 'releases?full=1',
-];
-
-const shape = (v, d = 0) => {
-  if (v === null) return 'null';
-  if (Array.isArray(v)) return v.length ? `[${v.length}× ${shape(v[0], d + 1)}]` : '[leer]';
-  if (typeof v === 'object') return d > 6 ? '{…}' : `{ ${Object.entries(v).map(([k, x]) => `${k}: ${shape(x, d + 1)}`).join(', ')} }`;
-  return typeof v === 'string' ? (v.length > 30 ? 'string(lang)' : 'string') : typeof v;
-};
-
-for (const p of paths) {
+const variants = ['servers/top', 'servers/top?limit=10', 'servers/top?limit=10&days=7', 'servers/top?limit=10&by=voice', 'servers/top?limit=10&rank=voice', 'servers/top?limit=10&sort=voice', 'servers/top?limit=10&ranked_by=voice', 'servers/top?limit=10&metric=voice', 'servers/top?top=10', 'servers/top?count=10'];
+for (const p of variants) {
   try {
     const res = await fetch(base + p, { headers: auth, signal: AbortSignal.timeout(20_000) });
-    const type = res.headers.get('content-type') ?? '';
-    console.log(`\n## /${p} -> HTTP ${res.status}`);
-    if (res.ok && type.includes('json')) console.log(shape(await res.json()));
-    else if (!res.ok) console.log('(kein Inhalt ausgegeben)');
-  } catch (err) {
-    console.log(`\n## /${p} -> Fehler: ${err.name}`);
-  }
+    const body = res.ok ? await res.json() : null;
+    console.log(`/${p} -> HTTP ${res.status}${body ? ` · Einträge ${body.items?.length} · ranked_by=${body.ranked_by} · days=${body.days}${body.error ? ' · Fehler=' + String(body.error).slice(0, 80) : ''}` : ''}`);
+  } catch (err) { console.log(`/${p} -> Fehler ${err.name}`); }
+}
+// Zeiträume der Verlaufsendpunkte: nur Länge von "volume"/"daily"
+for (const p of ['stats/global?days=90', 'tickets?days=90', 'applications?days=90', 'moderation?days=90', 'feedback?days=90', 'dashboard-activity?days=90', 'automations/history?days=30', 'automations/history?days=90']) {
+  try {
+    const res = await fetch(base + p, { headers: auth, signal: AbortSignal.timeout(20_000) });
+    const b = res.ok ? await res.json() : null;
+    console.log(`/${p} -> HTTP ${res.status}${b ? ` · days=${b.days} · Reihe=${(b.daily ?? b.volume ?? []).length}${b.incomplete !== undefined ? ' · incomplete=' + b.incomplete : ''}` : ''}`);
+  } catch (err) { console.log(`/${p} -> Fehler ${err.name}`); }
 }

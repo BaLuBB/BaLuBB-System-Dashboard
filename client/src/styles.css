@@ -163,3 +163,5 @@ body.tv { overflow: hidden; cursor: none; user-select: none; }
 .tvstage .card > header { margin-bottom: 10px; }
 .tvstage table { font-size: 20px; } .tvstage td, .tvstage th { padding: 6px 8px; }
 .tvstage .bars { height: 110px !important; }
+
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); } .check input { width: 16px; height: 16px; padding: 0; }
