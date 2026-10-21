@@ -21,6 +21,13 @@ export const makeMatcher = (keywords, exclude = DEFAULT_EXCLUDE) => {
   };
 };
 
+// Namensfeld eines Listeneintrags (wie im Cockpit, damit Filter und Anzeige dasselbe meinen)
+const entryName = (e) => {
+  if (e == null || typeof e !== 'object') return '';
+  const v = ['server', 'server_name', 'guild_name', 'guild', 'name'].map((k) => e[k]).find((x) => typeof x === 'string' && x.trim());
+  return v ?? '';
+};
+
 const sum = (arr, f) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
 
 /** Filtert die Quellen nach Namen und berechnet davon abhängige Summen neu. Summen über alle (z. B. Gesamtstatistik) bleiben. */
@@ -41,6 +48,11 @@ export function applyNameFilter(sources, keywords) {
     return d;
   });
   edit('automationsHistory', (d) => { d.busiest = (d.busiest ?? []).filter((x) => match(x.name)); d.most_errors = (d.most_errors ?? []).filter((x) => match(x.name)); d.aggregate_all = true; return d; });
+  // „Zu erledigen“: Einträge von anderen Servern fallen weg (Namen und Texte werden nicht veröffentlicht), der Zähler folgt der Liste.
+  // Ein Eintrag ohne erkennbaren Servernamen wird nicht gezeigt.
+  for (const [key, countKey, listKey] of [['activations', 'pending_count', 'pending'], ['feedback', 'new_count', 'new'], ['customBotRequests', 'open_count', 'open']]) {
+    edit(key, (d) => { d[listKey] = (d[listKey] ?? []).filter((x) => match(entryName(x))); d[countKey] = d[listKey].length; return d; });
+  }
   edit('overview', (d) => {
     const sv = out.servers?.available ? out.servers.data : null;
     if (sv && d.servers) d.servers = { total: sv.total, running: sv.running };

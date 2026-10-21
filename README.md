@@ -74,7 +74,7 @@ keine Nutzernamen, IDs oder Nachrichten.
 
 ### Namensfilter
 
-Angezeigt werden nur Dienste, Abläufe und Top-Server, deren **Name „BaLuBB“ oder „Bot“ enthält** (ohne Beachtung der
+Angezeigt werden nur Dienste, Abläufe, Top-Server und die Listen unter „Zu erledigen“ (Aktivierungen, Feedback, Custom-Bot-Anfragen), deren **Name „BaLuBB“ oder „Bot“ enthält** (ohne Beachtung der
 Groß-/Kleinschreibung, als Teilwort: „Botschaft“ würde ebenfalls passen). Der Filter wirkt schon beim Erzeugen des Snapshots, die
 anderen Namen werden also gar nicht erst veröffentlicht (auch nicht verschlüsselt). Summen über alle Server (Gesamtlage,
 Tickets, Bewerbungen, Moderation, Dashboard-Aktivität, Cloudflare) lassen sich nicht nach Namen aufteilen und bleiben unverändert;
