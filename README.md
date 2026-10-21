@@ -82,6 +82,23 @@ die Ablauf-Zahlen „Läufe/Fehler“ der API zählen alle Abläufe und sind ent
 variables → Actions → Variables →* `NAME_FILTER` (kommagetrennt, z. B. `BaLuBB,Bot,Status`; `off` schaltet den Filter ab).
 Fest ausgeblendet ist außerdem der Server **„Test Bot 1“** (exakter Name, `DEFAULT_EXCLUDE` in `client/src/cockpit/filter.js`).
 
+### Zuverlässige Aktualisierung (Cloudflare-Worker)
+
+GitHubs eigener Zeitplan (`schedule`) startet bei diesem Repository nicht zuverlässig, die Daten werden dann nur bei einem Merge
+neu geholt. Deshalb startet ein kleiner Cloudflare-Worker (`cloudflare-worker/`) den Workflow **alle 2 Minuten**. Einmalig einrichten:
+
+1. **GitHub-Token anlegen:** GitHub → *Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*.
+   Name `dashboard-trigger`, Ablauf nach Wunsch (z. B. 1 Jahr), *Repository access → Only select repositories →* `BaLuBB-System-Dashboard`,
+   *Permissions → Repository permissions → **Actions: Read and write*** (sonst nichts). Token kopieren.
+2. **Worker anlegen:** Cloudflare → *Workers & Pages → Create → Create Worker*, Name `balubb-dashboard-trigger`, *Deploy*, dann *Edit code*,
+   den gesamten Inhalt von `cloudflare-worker/worker.js` einfügen, *Deploy*.
+3. **Geheimnis setzen:** Worker → *Settings → Variables and Secrets → Add →* Typ **Secret**, Name `GH_TOKEN`, Wert = der Token aus Schritt 1.
+4. **Zeitplan:** Worker → *Settings → Trigger Events → Add → Cron Trigger →* `*/2 * * * *` (alle 2 Minuten).
+5. **Prüfen:** Nach 2–3 Minuten erscheinen unter *Actions* Läufe mit dem Auslöser *workflow_dispatch*; auf der Seite springt „Stand“ weiter.
+
+Der Worker kann ausschließlich diesen einen Workflow starten und ist von außen nicht aufrufbar. Läuft der Token ab oder wird er widerrufen, hört die
+Aktualisierung auf; die Seite zeigt dann weiter den letzten Stand.
+
 ### Aktualisierung, Verlauf, Grenzen
 
 - GitHub führt geplante Workflows frühestens alle 5 Minuten aus und verzögert sie oft um einige Minuten. Die Seite prüft alle

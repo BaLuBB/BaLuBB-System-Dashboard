@@ -1,0 +1,7 @@
+name = "balubb-dashboard-trigger"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+# alle 2 Minuten (der Lauf dauert etwa 40 Sekunden)
+[triggers]
+crons = ["*/2 * * * *"]
