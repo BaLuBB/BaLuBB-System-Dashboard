@@ -39,6 +39,10 @@ Die Verbindung ist unverschlüsselt (HTTP); nur im vertrauenswürdigen Netz oder
 | `BALUBB_API_KEY` | – | Key für die BaLuBB-API (aktiviert die Server-Kachel) |
 | `BALUBB_API_URL` | `https://bot.balubb.de/api/ext/v1/health` | Health-Endpunkt |
 | `BALUBB_TTL_MS` | `30000` | Cache-Dauer der API-Antwort |
+| `CLOUDFLARE_API_TOKEN` | – | Token mit *Zone → Analytics → Read* |
+| `CLOUDFLARE_ZONE_ID` | – | Zone-ID von `balubb.de` |
+| `CLOUDFLARE_DAYS` | `7` | Zeitraum in Tagen |
+| `CLOUDFLARE_TTL_MS` | `300000` | Cache-Dauer |
 
 ## BaLuBB-Serverstatus (optional)
 
@@ -53,6 +57,22 @@ Der Key bleibt auf dem Server und gelangt nie ins Frontend. Die Antwort wird 30 
 (`BALUBB_TTL_MS`), die API erlaubt 60 Anfragen pro Minute. Ohne Key erscheint keine Kachel.
 Der Server, auf dem das Dashboard läuft, muss bei Cloudflare für `/api/ext/` von der
 Managed Challenge ausgenommen sein, sonst antwortet die API mit 403.
+
+## Cloudflare-Analytics (optional)
+
+Zeigt Anfragen, Datenvolumen, Cache-Quote, Bedrohungen, Antwortcodes (2xx–5xx) und Top-Länder
+der letzten Tage (Quelle: Cloudflare GraphQL Analytics API).
+
+```bash
+CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ZONE_ID=... npm start
+```
+
+- **Token:** Cloudflare → Profil → *API Tokens* → *Create Custom Token* → *Zone → Analytics → Read*,
+  beschränkt auf die Zone `balubb.de`.
+- **Zone-ID:** Domain → *Overview* → rechte Spalte, Block *API*.
+- Der Token bleibt auf dem Server und gelangt nie ins Frontend. Ohne Token/Zone erscheint keine Kachel.
+- Die Antwort wird 5 min gecacht (`CLOUDFLARE_TTL_MS`), Zeitraum über `CLOUDFLARE_DAYS` (Standard 7).
+  Wie viele Tage Cloudflare liefert, hängt vom Plan ab.
 
 Das Dashboard zeigt immer das System, auf dem der Server läuft. Für mehrere Rechner
 den Server auf jedem Rechner starten.
