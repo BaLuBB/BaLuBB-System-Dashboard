@@ -32,7 +32,7 @@ export const Unavailable = ({ what }) => <p className="cp-unavail">{what ? `${wh
 export const Skeleton = ({ h = 80 }) => <div className="cp-skel" style={{ height: h }} aria-hidden="true" />;
 
 /** Schmaler Balken (z. B. CPU, Speicher, Platte); Ton wechselt bei hoher Auslastung, immer mit Zahl daneben. */
-export function Slim({ label, value, text, warnAt = 80, critAt = 92 }) {
+export function Slim({ label, value, text, sub, warnAt = 80, critAt = 92 }) {
   const known = value != null && !Number.isNaN(value);
   const tone = !known ? undefined : value >= critAt ? 'crit' : value >= warnAt ? 'warn' : undefined;
   return (
@@ -41,6 +41,7 @@ export function Slim({ label, value, text, warnAt = 80, critAt = 92 }) {
       <div className="track" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={known ? Math.round(value) : undefined}>
         <div className="fill" data-tone={tone} style={{ width: `${known ? Math.min(100, Math.max(0, value)) : 0}%` }} />
       </div>
+      {sub && <div className="sub">{sub}</div>}
     </div>
   );
 }

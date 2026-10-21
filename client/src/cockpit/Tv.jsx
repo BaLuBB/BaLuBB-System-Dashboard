@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { OverviewSection, topServers } from './sectionsA.jsx';
 import { OverviewSlide, ServerSlide, TopBarsSlide } from './tvSlides.jsx';
 import { AutomationsSection, ActivitySection, CloudflareSection, ReleasesSection, SupportSection, SystemSection } from './sectionsB.jsx';
@@ -106,11 +106,31 @@ export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' 
   }, [snap, now, hasCf, topEmpty]);
 
   const [idx, setIdx] = useState(0);
+  // Läuft nach jedem Wechsel (auch nach einem Klick) neu, so bekommt jede Seite die volle Zeit
   useEffect(() => {
-    const t = setInterval(() => setIdx((i) => i + 1), slideSec * 1000);
-    return () => clearInterval(t);
-  }, [slideSec]);
+    const t = setTimeout(() => setIdx((i) => i + 1), slideSec * 1000);
+    return () => clearTimeout(t);
+  }, [slideSec, idx]);
   const at = idx % slides.length, cur = slides[at];
+  // Jede Seite wird so weit vergrößert, wie sie in die Bühne passt: besser lesbar auf dem Fernseher
+  const outer = useRef(null), inner = useRef(null);
+  const [zoom, setZoom] = useState(1);
+  useLayoutEffect(() => {
+    const fit = () => {
+      const o = outer.current, i = inner.current;
+      if (!o || !i) return;
+      let best = 1;
+      for (const z of [1.45, 1.35, 1.25, 1.15, 1.08]) {
+        i.style.zoom = z;
+        if (i.getBoundingClientRect().height <= o.getBoundingClientRect().height - 20) { best = z; break; }
+      }
+      i.style.zoom = best;
+      setZoom(best);
+    };
+    fit();
+    const t = setTimeout(fit, 500); // nochmal messen, wenn Schriften und Diagramme fertig sind
+    return () => clearTimeout(t);
+  }, [at, snap, slides.length]);
   const states = categoryStates(snap, st);
   const d = new Date(now);
   const clock = (t) => new Date(t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -122,24 +142,24 @@ export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' 
           <header className="tv-head">
             <div className="tv-title">
               <h1>BaLuBB System</h1>
-              <p className="muted">Stand {clock(Date.parse(snap.generatedAt))} Uhr
+              <p className="muted"><span className="live" aria-hidden="true" />Stand {clock(Date.parse(snap.generatedAt))} Uhr
                 {connLostSince && <span className="tv-lost"> · Verbindung gestört seit {clock(connLostSince)}, zeige letzte Daten</span>}</p>
             </div>
             <div className="tv-state" data-state={st.state}><Pill state={st.state} /><span className="sentence">{st.text}</span></div>
             <div className="tv-clock">{clock(now)}<small>{d.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long' })}</small></div>
           </header>
-          <div className="tv-slide" key={at}>{cur.body}</div>
+          <div className="tv-slide" key={at} ref={outer}><div className="tv-zoom" ref={inner} style={{ zoom }}>{cur.body}</div></div>
           <nav className="tv-cats" aria-label="Kategorien">
             {slides.map((s, i) => {
               const state = states[s.name];
               const on = i === at;
               return (
-                <div key={s.name} className={`tv-cat${on ? ' on' : ''}`} aria-current={on ? 'true' : undefined}>
+                <button type="button" key={s.name} className={`tv-cat${on ? ' on' : ''}`} aria-current={on ? 'true' : undefined} onClick={() => setIdx(i)}>
                   {on && <span className="fill" key={idx} style={{ animationDuration: `${slideSec}s` }} />}
                   {CAT_ICON[s.name]}
                   <span className="name">{s.name}</span>
                   {state && <i className="ind" data-state={state} role="img" aria-label={state === 'crit' ? 'Fehler' : 'Warnung'}>{ICON[state]}</i>}
-                </div>
+                </button>
               );
             })}
           </nav>

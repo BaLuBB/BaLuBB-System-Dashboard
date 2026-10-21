@@ -1,6 +1,8 @@
 // Namensfilter: nur Dinge anzeigen, deren Name eines der Stichwörter enthält (ohne Beachtung der Groß-/Kleinschreibung).
 // Wird beim Erzeugen des Snapshots angewendet, damit andere Namen gar nicht erst veröffentlicht werden.
 export const DEFAULT_KEYWORDS = ['BaLuBB', 'Bot'];
+// Diese Namen (exakt, ohne Beachtung der Groß-/Kleinschreibung) werden nie angezeigt, auch wenn sie ein Stichwort enthalten.
+export const DEFAULT_EXCLUDE = ['Test Bot 1'];
 
 /** NAME_FILTER: leer = Standard, "*" oder "off" = kein Filter, sonst kommagetrennte Stichwörter. */
 export function parseKeywords(value) {
@@ -10,16 +12,19 @@ export function parseKeywords(value) {
   return v.split(',').map((k) => k.trim()).filter(Boolean);
 }
 
-export const makeMatcher = (keywords) => {
+export const makeMatcher = (keywords, exclude = DEFAULT_EXCLUDE) => {
   const ks = keywords.map((k) => k.toLowerCase());
-  return (name) => ks.length === 0 || ks.some((k) => String(name ?? '').toLowerCase().includes(k));
+  const ex = new Set(exclude.map((k) => k.trim().toLowerCase()));
+  return (name) => {
+    const n = String(name ?? '').trim().toLowerCase();
+    return !ex.has(n) && (ks.length === 0 || ks.some((k) => n.includes(k)));
+  };
 };
 
 const sum = (arr, f) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
 
 /** Filtert die Quellen nach Namen und berechnet davon abhängige Summen neu. Summen über alle (z. B. Gesamtstatistik) bleiben. */
 export function applyNameFilter(sources, keywords) {
-  if (!keywords.length) return sources;
   const match = makeMatcher(keywords);
   const out = { ...sources };
   const edit = (key, fn) => { const s = out[key]; if (s?.available) out[key] = { ...s, data: fn(structuredClone(s.data)) }; };
@@ -48,7 +53,6 @@ export function applyNameFilter(sources, keywords) {
 
 /** Entfernt aus dem Verlauf die Spalten der Server, die nicht zum Filter passen (sonst zählen sie bei „laufende Server“ mit). */
 export function filterHistory(history, keywords) {
-  if (!keywords.length) return history;
   const match = makeMatcher(keywords);
   const keep = history.names.map((n, i) => (match(n) ? i : -1)).filter((i) => i >= 0);
   return { names: keep.map((i) => history.names[i]), points: history.points.map(([t, row]) => [t, keep.map((i) => row[i] ?? '-').join('')]) };

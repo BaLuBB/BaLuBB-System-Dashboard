@@ -180,7 +180,9 @@ export function ReleasesSection({ snap, limit = 6, compact = false }) {
 }
 
 /* ---------- Cloudflare ---------- */
-const CODE = { '2xx': ['var(--ok)', '✓', 'Erfolg (2xx)'], '3xx': ['var(--blue-line)', '→', 'Weiterleitung (3xx)'], '4xx': ['var(--warn)', '▲', 'Client-Fehler (4xx)'], '5xx': ['var(--crit)', '✕', 'Server-Fehler (5xx)'] };
+const ACTION = { block: 'Blockiert', managed_challenge: 'Prüfung (Challenge)', challenge: 'Prüfung (Challenge)', js_challenge: 'Prüfung (JS)', log: 'Nur protokolliert', allow: 'Erlaubt', skip: 'Übersprungen', jschallenge: 'Prüfung (JS)' };
+const THREAT = { Bot: 'Bots', Anonymizer: 'Anonymisierer', 'Search Engine': 'Suchmaschinen', 'Known Bot': 'Bekannte Bots' };
+const CODE = { '2xx': ['var(--ok)', '✓', 'Erfolg 2xx'], '3xx': ['var(--blue-line)', '→', 'Umleitung 3xx'], '4xx': ['var(--warn)', '▲', 'Client 4xx'], '5xx': ['var(--crit)', '✕', 'Server 5xx'] };
 
 export function CloudflareSection({ snap, range }) {
   const c = snap.cloudflare;
@@ -214,11 +216,12 @@ export function CloudflareSection({ snap, range }) {
           {d.paths ? <HBars rows={d.paths.slice(0, 6).map((p) => ({ label: p.path, value: p.requests }))} /> : <Unavailable />}
           {d.paths && <p className="muted small">Aufrufe der API darunter: <b className="mono">{num(apiCalls)}</b></p>}
         </Card>
-        <Card title="Sicherheit (24 h)" right={`${num(d.totals.threats)} Bedrohungen in ${d.days.length} Tagen`}>
+        <Card title="Sicherheit" right={`${num(d.totals.threats)} Bedrohungen · ${d.days.length} Tage`}>
+          {sec && <h3>Maßnahmen (24 h)</h3>}
           {sec ? (handled.length
-            ? <HBars rows={handled.map((a) => ({ label: a.action, value: a.requests, color: 'var(--warn)' }))} />
+            ? <HBars rows={handled.map((a) => ({ label: ACTION[a.action] ?? a.action, value: a.requests, color: 'var(--warn)' }))} />
             : <Empty>✓ Cloudflare musste keine Anfragen blockieren oder prüfen.</Empty>) : <Unavailable />}
-          {d.threatTypes?.length > 0 && <><hr className="cp-rule" /><h3>Bedrohungsarten</h3><HBars rows={d.threatTypes.slice(0, 5).map((x) => ({ label: x.type, value: x.requests }))} /></>}
+          {d.threatTypes?.length > 0 && <><hr className="cp-rule" /><h3>Bedrohungsarten ({d.days.length} Tage)</h3><HBars rows={d.threatTypes.slice(0, 5).map((x) => ({ label: THREAT[x.type] ?? x.type, value: x.requests }))} /></>}
         </Card>
         <Card title="Anfragen je Stunde (24 h)">
           {d.hourly ? <Columns data={d.hourly.map((x) => ({ date: x.t.slice(0, 10), values: [x.cached, Math.max(0, x.requests - x.cached)] }))} series={[{ label: 'Aus dem Cache', color: 'var(--blue-line)' }, { label: 'Vom Ursprung', color: 'var(--muted)' }]} label="Anfragen je Stunde" /> : <Unavailable />}

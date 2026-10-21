@@ -87,8 +87,8 @@ export function StatusSection({ snap, now, compact = false }) {
                   {s.cpu_percent != null ? (
                     <div className="vals">
                       <Slim label="CPU" value={s.cpu_percent} />
-                      <Slim label="Speicher" value={memPct} text={s.memory ? `${bytesText(s.memory.used_bytes)}${memPct == null ? '' : ` · ${Math.round(memPct)} %`}` : undefined} />
-                      <Slim label="Platte" value={diskPct} text={s.disk ? `${bytesText(s.disk.used_bytes)}${diskPct == null ? '' : ` · ${Math.round(diskPct)} %`}` : undefined} />
+                      <Slim label="Speicher" value={memPct} text={memPct == null ? (s.memory ? bytesText(s.memory.used_bytes) : undefined) : `${Math.round(memPct)} %`} sub={memPct != null && s.memory ? bytesText(s.memory.used_bytes) : undefined} />
+                      <Slim label="Platte" value={diskPct} text={diskPct == null ? (s.disk ? bytesText(s.disk.used_bytes) : undefined) : `${Math.round(diskPct)} %`} sub={diskPct != null && s.disk ? bytesText(s.disk.used_bytes) : undefined} />
                     </div>
                   ) : <div className="up">keine Messwerte</div>}
                 </div>

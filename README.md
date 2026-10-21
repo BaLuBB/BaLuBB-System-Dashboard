@@ -43,8 +43,8 @@ balubb.github.io/BaLuBB-System-Dashboard
 ```
 
 Beim ersten Mal erscheint ein großes Passwortfeld. Passwort tippen, Enter. Danach **merkt sich der Fernseher das Passwort im Browser-Speicher**
-(localStorage) und startet die Diashow künftig von selbst. Wer das Passwort nicht tippen möchte, hängt es an: `…/#passwort`
-(Buchstaben, Ziffern, `-`, `_`, `.`; bei anderen Zeichen erzeugt der Knopf **Diashow-Link** im Cockpit den kodierten Link `…/#pw=…`).
+(localStorage) und startet die Diashow künftig von selbst. Wer das Passwort nicht tippen möchte, hängt es an: `…/tv#passwort`
+(Buchstaben, Ziffern, `-`, `_`, `.`; bei anderen Zeichen erzeugt der Knopf **Diashow-Link** im Cockpit den kodierten Link `…/tv#pw=…`).
 Auch `#tv&pw=…` aus früheren Links funktioniert weiter.
 
 Die Diashow meldet sich selbst an, passt sich jeder Bildschirmgröße an (feste 1920×1080-Bühne, skaliert), hält den Bildschirm wach
@@ -80,6 +80,7 @@ anderen Namen werden also gar nicht erst veröffentlicht (auch nicht verschlüss
 Tickets, Bewerbungen, Moderation, Dashboard-Aktivität, Cloudflare) lassen sich nicht nach Namen aufteilen und bleiben unverändert;
 die Ablauf-Zahlen „Läufe/Fehler“ der API zählen alle Abläufe und sind entsprechend gekennzeichnet. Ändern: *Settings → Secrets and
 variables → Actions → Variables →* `NAME_FILTER` (kommagetrennt, z. B. `BaLuBB,Bot,Status`; `off` schaltet den Filter ab).
+Fest ausgeblendet ist außerdem der Server **„Test Bot 1“** (exakter Name, `DEFAULT_EXCLUDE` in `client/src/cockpit/filter.js`).
 
 ### Aktualisierung, Verlauf, Grenzen
 
@@ -99,7 +100,7 @@ variables → Actions → Variables →* `NAME_FILTER` (kommagetrennt, z. B. `Ba
 npm install
 npm run demo                       # baut die Seite und einen verschlüsselten Demo-Snapshot (Passwort: demo-passwort-123)
 cd dist-pages && python3 -m http.server 8099
-# Diashow: http://127.0.0.1:8099/#demo-passwort-123   Cockpit: http://127.0.0.1:8099/#cockpit&demo-passwort-123
+# Diashow: http://127.0.0.1:8099/tv#demo-passwort-123   Cockpit: http://127.0.0.1:8099/#cockpit&demo-passwort-123
 ```
 
 ---

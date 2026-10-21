@@ -196,7 +196,7 @@ export function HBars({ rows, format = num, color = 'var(--blue-line)', max, emp
             <span className="label">{r.label}</span>
             <span className="track">
               <span className="bar" style={{ width: `${p}%`, background: r.color ?? color }} />
-              <span className={`val${inside ? ' in' : ''}`} style={inside ? undefined : { left: `calc(${p}% + 8px)` }}>{format(r.value)}</span>
+              <span className={`val${inside ? ' in' : ''}`} style={inside ? { right: `calc(${100 - p}% + 6px)` } : { left: `calc(${p}% + 8px)` }}>{format(r.value)}</span>
             </span>
           </div>
         );
