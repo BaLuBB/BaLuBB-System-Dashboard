@@ -7,13 +7,16 @@ export const SOURCES = {
   health: ['health'],
   overview: ['overview'],
   servers: ['servers'],
-  serversTop: ['servers/top?limit=10', 'servers/top'],
+  // n=10 liefert alle Server mit Daten; je Zeitraum eine Abfrage, die Rangfolge wählt die Seite selbst
+  serversTop7: ['servers/top?n=10&days=7', 'servers/top?n=10'],
+  serversTop30: ['servers/top?n=10&days=30', 'servers/top?n=10'],
+  serversTop90: ['servers/top?n=10&days=90', 'servers/top?n=10'],
   maintenance: ['maintenance'],
   activations: ['activations'],
   feedback: ['feedback?days=90', 'feedback'],
   customBotRequests: ['custom-bot-requests'],
   automations: ['automations'],
-  automationsHistory: ['automations/history?days=30', 'automations/history?days=7', 'automations/history'],
+  automationsHistory: ['automations/history?days=7', 'automations/history'], // die API liefert höchstens 7 Tage
   tickets: ['tickets?days=90', 'tickets'],
   applications: ['applications?days=90', 'applications'],
   moderation: ['moderation?days=90', 'moderation'],

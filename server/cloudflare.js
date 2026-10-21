@@ -76,7 +76,7 @@ export function createCloudflareClient({
   token = process.env.CLOUDFLARE_API_TOKEN,
   zone = process.env.CLOUDFLARE_ZONE_ID,
   account = process.env.CLOUDFLARE_ACCOUNT_ID,
-  days = Number(process.env.CLOUDFLARE_DAYS ?? 7),
+  days = Number(process.env.CLOUDFLARE_DAYS ?? 30),
   ttlMs = Number(process.env.CLOUDFLARE_TTL_MS ?? 300_000),
   fetchImpl = fetch,
 } = {}) {
@@ -98,7 +98,14 @@ export function createCloudflareClient({
     return (await res.json()).result?.account?.id;
   }
 
-  async function load() {
+  /** Der Tarif begrenzt, wie weit zurück Cloudflare Daten liefert: bei Ablehnung mit 7 Tagen erneut versuchen. */
+  async function load(range = days) {
+    const result = await loadRange(range);
+    if (result.error && range > 7 && /days|range|time|older|limit|exceed|retention/i.test(result.error)) return loadRange(7);
+    return result;
+  }
+
+  async function loadRange(days) {
     const now = Date.now();
     const range = { zone, from: day(now - (days - 1) * 24 * HOUR), to: day(now) };
     const last24 = { zone, from: iso(now - 24 * HOUR), to: iso(now) };

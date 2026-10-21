@@ -1,4 +1,5 @@
 import React from 'react';
+import './styles.css';
 import { useStats } from './useStats.js';
 import { Bar, Card, Spark, Stat, Table } from './components.jsx';
 import BalubbCard from './BalubbCard.jsx';
