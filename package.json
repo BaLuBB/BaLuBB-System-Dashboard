@@ -8,7 +8,7 @@
     "dev": "concurrently -n api,web -c blue,green \"node --watch server/index.js\" \"vite\"",
     "build": "vite build",
     "start": "node server/index.js",
-    "test": "node --test server/server.test.js server/snapshot.test.js",
+    "test": "node --test server/server.test.js server/snapshot.test.js server/history.test.js",
     "build:pages": "VITE_STATIC=1 vite build --base ./ --outDir ../dist-pages && node scripts/build-snapshot.mjs dist-pages"
   },
   "dependencies": {
