@@ -3,6 +3,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { encryptJson } from '../client/src/crypto.js';
 import { appendPoint, emptyHistory } from '../client/src/history.js';
+import { applyNameFilter, filterHistory, parseKeywords } from '../client/src/cockpit/filter.js';
 
 const password = process.env.DEMO_PASSWORD ?? 'demo-passwort-123';
 const out = process.argv[2] ?? 'dist-pages';
@@ -40,8 +41,8 @@ const sources = {
   activations: { time: iso(now), total: 12, by_status: { active: 9, deactivated: 1 }, pending_count: 2, pending: [{ server: 'Neuer Clan', requested_at: iso(now - 3 * 3600e3), text: 'Aktivierung angefragt' }, { server: 'Kochfreunde', requested_at: iso(now - 26 * 3600e3), text: 'Aktivierung angefragt' }] },
   feedback: { time: iso(now), total: 8, new_count: 1, by_status: { erledigt: 7 }, by_kind: { feedback: 8 }, days: 90, volume: vol(() => ({ received: Math.round(rnd() * 2) })), new: [{ server: 'Gaming Lounge', created_at: iso(now - 5 * 3600e3), text: 'Der Ticket-Button reagiert manchmal verzögert, ansonsten super Bot! Vielen Dank für die schnelle Hilfe beim letzten Mal.' }] },
   customBotRequests: { time: iso(now), total: 3, open_count: 0, by_status: { angenommen: 3 }, open: [] },
-  automations: { time: iso(now), total: 36, active: 31, runs_today: 412, errors_today: 3, incomplete: false, items: Array.from({ length: 36 }, (_, i) => ({ name: `Ablauf ${i + 1}`, active: i % 7 !== 0, runs_today: Math.round(rnd() * 30), errors_today: i === 4 ? 3 : 0, last_run: null, last_status: null })) },
-  automationsHistory: { time: iso(now), days: 7, incomplete: true, runs: 2000, errors: 14, error_rate_percent: 0.7, daily: series(7, (date) => ({ date, runs: Math.round(250 + rnd() * 80), errors: Math.round(rnd() * 4) })), most_errors: [{ name: 'Ablauf 5', errors: 9 }, { name: 'Ablauf 12', errors: 5 }], busiest: [{ name: 'Status-Abfrage', runs: 820 }, { name: 'Ticket-Benachrichtigung', runs: 410 }, { name: 'Tägliche Statistik', runs: 300 }, { name: 'Social-Media-Import', runs: 190 }, { name: 'Backup', runs: 70 }] },
+  automations: { time: iso(now), total: 36, active: 31, runs_today: 412, errors_today: 3, incomplete: false, items: Array.from({ length: 36 }, (_, i) => ({ name: i % 3 === 0 ? `BaLuBB Ablauf ${i + 1}` : i % 3 === 1 ? `Bot Ablauf ${i + 1}` : `Newsletter ${i + 1}`, active: i % 7 !== 0, runs_today: Math.round(rnd() * 30), errors_today: i === 4 ? 3 : 0, last_run: null, last_status: null })) },
+  automationsHistory: { time: iso(now), days: 7, incomplete: true, runs: 2000, errors: 14, error_rate_percent: 0.7, daily: series(7, (date) => ({ date, runs: Math.round(250 + rnd() * 80), errors: Math.round(rnd() * 4) })), most_errors: [{ name: 'Bot Ablauf 5', errors: 9 }, { name: 'Newsletter 12', errors: 5 }], busiest: [{ name: 'BaLuBB Status-Abfrage', runs: 820 }, { name: 'Bot Ticket-Benachrichtigung', runs: 410 }, { name: 'Newsletter', runs: 300 }, { name: 'Social-Media-Import', runs: 190 }, { name: 'BaLuBB Backup', runs: 70 }] },
   tickets: { time: iso(now), total: 320, open: 12, closed: 308, servers_with_tickets: 7, days: 90, volume: vol(() => ({ created: Math.round(rnd() * 6), closed: Math.round(rnd() * 6) })) },
   applications: { time: iso(now), total: 64, by_status: { rejected: 14, accepted: 41, pending: 9 }, days: 90, volume: vol(() => ({ submitted: Math.round(rnd() * 3), accepted: Math.round(rnd() * 2) })) },
   moderation: { time: iso(now), days: 90, totals: { warn: 80, ban: 6, mute: 20, kick: 9, timeout: 33 }, volume: vol(() => ({ warn: Math.round(rnd() * 3), ban: Math.round(rnd() * 0.6), mute: Math.round(rnd() * 1.4), kick: Math.round(rnd()), timeout: Math.round(rnd() * 2) })) },
@@ -51,7 +52,8 @@ const sources = {
   counts: { time: iso(now), ticket_categories: 18, ticket_panels: 11, ticket_buttons: 26, role_links: 42, tournaments: 3, tournament_entries: 56, status_subscribers: 91, server_settings_rows: 120 },
   releases: { time: iso(now), items: Array.from({ length: 10 }, (_, i) => ({ version: `2026.10.${20 - i}`, date: `2026-10-${20 - i}`, title: ['Neues Ticket-Panel', 'Statusseite überarbeitet', 'Bewerbungen mit Vorlagen', 'Turnier-Tabellen', 'Fehlerbehebungen'][i % 5], changes: 2, items: [{ kind: 'neu', text: 'Neue Funktion für Betreiber.' }, { kind: 'fix', text: 'Ein Anzeigefehler wurde behoben.' }] })) },
 };
-const wrap = Object.fromEntries(Object.entries(sources).map(([k, data]) => [k, { available: true, data }]));
+const keywords = parseKeywords(process.env.NAME_FILTER);
+const wrap = applyNameFilter(Object.fromEntries(Object.entries(sources).map(([k, data]) => [k, { available: true, data }])), keywords);
 wrap.feedback.data.by_kind = { feedback: 8 };
 
 let history = emptyHistory();
@@ -59,7 +61,7 @@ for (let k = 400; k >= 1; k--) {
   const items = servers.map((s, i) => ({ name: s.name, state: i === 2 && k > 100 && k < 140 ? 'offline' : i === 8 && k > 20 ? 'offline' : s.state }));
   history = appendPoint(history, { data: { servers: { items } } }, now - k * 300e3);
 }
-history = appendPoint(history, { data: { servers: { items: servers } } }, now);
+history = filterHistory(appendPoint(history, { data: { servers: { items: servers } } }, now), keywords);
 
 const cfDays = series(30, (date, i) => ({ date, requests: Math.round(900 + rnd() * 1500 + i * 20), uniques: Math.round(80 + rnd() * 150), threats: Math.round(rnd() * 10) }));
 const cloudflare = { configured: true, fetchedAt: iso(now - 2 * 60e3), data: {
@@ -72,7 +74,7 @@ const cloudflare = { configured: true, fetchedAt: iso(now - 2 * 60e3), data: {
   paths: [{ path: '/', requests: 900 }, { path: '/api/ext/v1/health', requests: 288 }, { path: '/status', requests: 120 }, { path: '/api/ext/v1/servers', requests: 288 }],
   web: { enabled: false, pageloads: 0, visits: 0, pages: [] }, partErrors: {} } };
 
-const snap = { generatedAt: iso(now - 2 * 60e3), intervalMin: 5, balubb: { configured: true, fetchedAt: iso(now - 2 * 60e3), sources: wrap }, cloudflare, history };
+const snap = { generatedAt: iso(now - 2 * 60e3), intervalMin: 5, filter: { keywords }, balubb: { configured: true, fetchedAt: iso(now - 2 * 60e3), sources: wrap }, cloudflare, history };
 await mkdir(out, { recursive: true });
 await writeFile(`${out}/snapshot.enc.json`, JSON.stringify(await encryptJson(snap, password)));
 console.log(`Demo-Snapshot geschrieben (Passwort: ${password}).`);

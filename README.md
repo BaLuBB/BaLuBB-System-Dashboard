@@ -72,6 +72,15 @@ Wird das Passwort geändert, den Link einmal mit dem neuen Passwort öffnen. Auf
 Je Quelle gibt es Rückfallpfade; fällt eine aus, zeigt nur ihr Bereich „gerade nicht verfügbar“. Die API liefert nur Summen,
 keine Nutzernamen, IDs oder Nachrichten.
 
+### Namensfilter
+
+Angezeigt werden nur Dienste, Abläufe und Top-Server, deren **Name „BaLuBB“ oder „Bot“ enthält** (ohne Beachtung der
+Groß-/Kleinschreibung, als Teilwort: „Botschaft“ würde ebenfalls passen). Der Filter wirkt schon beim Erzeugen des Snapshots, die
+anderen Namen werden also gar nicht erst veröffentlicht (auch nicht verschlüsselt). Summen über alle Server (Gesamtlage,
+Tickets, Bewerbungen, Moderation, Dashboard-Aktivität, Cloudflare) lassen sich nicht nach Namen aufteilen und bleiben unverändert;
+die Ablauf-Zahlen „Läufe/Fehler“ der API zählen alle Abläufe und sind entsprechend gekennzeichnet. Ändern: *Settings → Secrets and
+variables → Actions → Variables →* `NAME_FILTER` (kommagetrennt, z. B. `BaLuBB,Bot,Status`; `off` schaltet den Filter ab).
+
 ### Aktualisierung, Verlauf, Grenzen
 
 - GitHub führt geplante Workflows frühestens alle 5 Minuten aus und verzögert sie oft um einige Minuten. Die Seite prüft alle

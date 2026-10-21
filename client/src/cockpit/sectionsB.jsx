@@ -2,6 +2,7 @@ import React from 'react';
 import { Columns, Donut, HBars, LegendList, Meter, TimeChart } from './charts.jsx';
 import { bytesText, compact, dataOf, durationText, lastN, num, pctText, relTime, source, sumBy } from './data.js';
 import { sourceStates } from './status.js';
+import { filterLabel } from './filter.js';
 import { Card, Empty, Pill, Section, Unavailable } from './ui.jsx';
 
 /* ---------- Abläufe ---------- */
@@ -10,7 +11,7 @@ export function AutomationsSection({ snap }) {
   const a = auto.available ? auto.data : null, h = hist.available ? hist.data : null;
   const daily = (h?.daily ?? []).map((d) => ({ date: d.date, values: [Math.max(0, d.runs - d.errors), d.errors] }));
   return (
-    <Section id="ablaeufe" title="Abläufe" sub={h ? `letzte ${h.days} Tage (die API liefert höchstens 7)` : undefined}>
+    <Section id="ablaeufe" title="Abläufe" sub={h ? `letzte ${h.days} Tage (die API liefert höchstens 7)${snap.filter?.keywords?.length ? ` · Listen nur mit ${filterLabel(snap.filter.keywords)} im Namen` : ''}` : undefined}>
       {!a && !h ? <Card><Unavailable what="Abläufe" /></Card> : (
         <div className="cp-grid cols-3">
           <Card title="Läufe und Fehler je Tag" right={h?.incomplete ? <Pill state="warn">Untergrenze</Pill> : undefined}>
@@ -18,7 +19,7 @@ export function AutomationsSection({ snap }) {
               <>
                 <p className="cp-hero">
                   <span className="cp-big">{pctText(h.error_rate_percent)}</span>
-                  <span className="cp-unit">Fehlerquote · {num(h.runs)} Läufe, {num(h.errors)} Fehler</span>
+                  <span className="cp-unit">Fehlerquote · {num(h.runs)} Läufe, {num(h.errors)} Fehler{h.aggregate_all ? ' (alle Abläufe)' : ''}</span>
                 </p>
                 {daily.length ? <Columns data={daily} series={[{ label: 'Erfolgreich', color: 'var(--blue-line)' }, { label: 'Fehler', color: 'var(--crit)' }]} label="Läufe und Fehler je Tag" /> : <Empty>Keine Läufe im Zeitraum.</Empty>}
                 {h.incomplete && <p className="muted small">Hinweis: n8n liefert höchstens 2000 Läufe. Die Zahlen sind eine Untergrenze.</p>}
@@ -26,7 +27,7 @@ export function AutomationsSection({ snap }) {
             ) : <Unavailable what="Verlauf" />}
           </Card>
           <Card title="Aktivste Abläufe">
-            {h ? <HBars rows={(h.busiest ?? []).slice(0, 5).map((x) => ({ label: x.name, value: x.runs }))} empty="Keine Läufe im Zeitraum." /> : <Unavailable />}
+            {h ? <HBars rows={(h.busiest ?? []).slice(0, 5).map((x) => ({ label: x.name, value: x.runs }))} empty={snap.filter?.keywords?.length ? `Keine Läufe von Abläufen mit ${filterLabel(snap.filter.keywords)} im Namen.` : 'Keine Läufe im Zeitraum.'} /> : <Unavailable />}
             <hr className="cp-rule" />
             <h3>Fehleranfälligste Abläufe</h3>
             {h ? ((h.most_errors ?? []).length
@@ -243,6 +244,7 @@ export function Footer({ snap }) {
   const cf = snap.cloudflare;
   return (
     <footer className="cp-footer">
+      {snap.filter?.keywords?.length > 0 && <div>Filter: Dienste, Abläufe und Top-Server nur mit {filterLabel(snap.filter.keywords)} im Namen. Summen über alle Server bleiben unverändert.</div>}
       <div>Nur lesen · Datenquellen: BaLuBB-API und Cloudflare-Analysen · Version {typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '1'} · Stand {new Date(snap.generatedAt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}</div>
       <div className="cp-sources" aria-label="Zustand der Datenquellen">
         {states.map((s) => <span key={s.name} className={s.available ? 'ok' : 'bad'} title={s.error}>{LABEL[s.name] ?? s.name}{s.available ? '' : ' (gerade nicht verfügbar)'}</span>)}

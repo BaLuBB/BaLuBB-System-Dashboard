@@ -6,6 +6,9 @@ import { MaintenanceBars, StatusSection, TodoSection, topServers } from './secti
 import { overallStatus } from './status.js';
 import { Card, Pill, Section } from './ui.jsx';
 import { runningSeries, uptimeByServer } from '../history.js';
+import { filterLabel } from './filter.js';
+
+const emptyTop = (snap) => (snap.filter?.keywords?.length ? `Kein Server mit ${filterLabel(snap.filter.keywords)} im Namen hat Aktivität.` : 'Keine Aktivität.');
 
 const NOTE_TAG = { crit: 'Fehler', warn: 'Warnung', maint: 'Wartung', info: 'Hinweis' };
 const serverItems = (snap) => dataOf(snap, 'servers')?.items ?? dataOf(snap, 'health')?.servers?.items ?? [];
@@ -68,8 +71,8 @@ export function TopBarsSlide({ snap }) {
   return (
     <div className="tv-cols tv-top">
       <div className="tv-stack">
-        <Card title="Nachrichten, letzte 30 Tage"><HBars rows={rows(msg, (s) => s.messages)} empty="Keine Aktivität." /></Card>
-        <Card title="Sprachstunden, letzte 30 Tage"><HBars rows={rows(voice, (s) => s.voice_hours)} format={(v) => `${num(v, 1)} Std.`} empty="Keine Aktivität." /></Card>
+        <Card title="Nachrichten, letzte 30 Tage"><HBars rows={rows(msg, (s) => s.messages)} empty={emptyTop(snap)} /></Card>
+        <Card title="Sprachstunden, letzte 30 Tage"><HBars rows={rows(voice, (s) => s.voice_hours)} format={(v) => `${num(v, 1)} Std.`} empty={emptyTop(snap)} /></Card>
       </div>
       <TopTable snap={snap} />
     </div>
@@ -81,6 +84,7 @@ function TopTable({ snap }) {
   if (!source(snap, 'serversTop30').available) return <Card title="Top-Server"><p className="cp-unavail">gerade nicht verfügbar</p></Card>;
   return (
     <Card title="Top-Server nach Nachrichten" right={`${t.withData ?? 0} Server mit Daten`}>
+      {t.items.length === 0 && <p className="cp-empty">{emptyTop(snap)}</p>}
       <table className="cp-table">
         <thead><tr><th>Server</th><th className="num">Mitglieder</th><th className="num">Beitritte</th><th className="num">Abgänge</th><th className="num">Tickets</th><th className="num">Moderation</th></tr></thead>
         <tbody>{t.items.map((s, i) => (

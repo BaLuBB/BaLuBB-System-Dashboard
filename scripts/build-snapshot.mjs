@@ -7,6 +7,7 @@ import { createBalubbSuite } from '../server/balubbApi.js';
 import { createCloudflareClient } from '../server/cloudflare.js';
 import { encryptJson, decryptJson } from '../client/src/crypto.js';
 import { appendPoint, emptyHistory } from '../client/src/history.js';
+import { applyNameFilter, filterHistory, parseKeywords } from '../client/src/cockpit/filter.js';
 
 const password = process.env.DASHBOARD_PASSWORD ?? '';
 if (password.length < 12) {
@@ -15,6 +16,8 @@ if (password.length < 12) {
 }
 
 const out = process.argv[2] ?? 'dist-pages';
+// Nur Dinge mit diesen Stichwörtern im Namen anzeigen (Standard: BaLuBB, Bot). NAME_FILTER=off schaltet den Filter ab.
+const keywords = parseKeywords(process.env.NAME_FILTER);
 const INTERVAL_MIN = Number(process.env.SNAPSHOT_INTERVAL_MIN ?? 5);
 
 function previousUrl() {
@@ -38,17 +41,21 @@ async function loadPreviousHistory() {
   }
 }
 
-const [balubb, cloudflare, prev] = await Promise.all([
+const [balubbRaw, cloudflare, prev] = await Promise.all([
   createBalubbSuite({ ttlMs: 0 })(),
   createCloudflareClient({ ttlMs: 0 })(),
   loadPreviousHistory(),
 ]);
 
-// Serverzustände (aus /servers, sonst /health) für den Verlauf
-const items = balubb.sources?.servers?.data?.items ?? balubb.sources?.health?.data?.servers?.items;
-const history = items ? appendPoint(prev.history, { data: { servers: { items } } }) : prev.history;
+// Namensfilter vor allem anderen: nicht passende Namen werden gar nicht erst veröffentlicht
+const balubb = balubbRaw.sources ? { ...balubbRaw, sources: applyNameFilter(balubbRaw.sources, keywords) } : balubbRaw;
 
-const snapshot = { generatedAt: new Date().toISOString(), intervalMin: INTERVAL_MIN, balubb, cloudflare, history };
+// Serverzustände (aus /servers, sonst /health) für den Verlauf; alte Spalten nicht passender Server entfallen
+const items = balubb.sources?.servers?.data?.items ?? balubb.sources?.health?.data?.servers?.items;
+const base = filterHistory(prev.history, keywords);
+const history = items ? appendPoint(base, { data: { servers: { items } } }) : base;
+
+const snapshot = { generatedAt: new Date().toISOString(), intervalMin: INTERVAL_MIN, filter: { keywords }, balubb, cloudflare, history };
 await mkdir(out, { recursive: true });
 await writeFile(`${out}/snapshot.enc.json`, JSON.stringify(await encryptJson(snapshot, password)));
 
@@ -56,4 +63,4 @@ const sources = Object.values(balubb.sources ?? {});
 const okCount = sources.filter((s) => s.available).length;
 const failed = Object.entries(balubb.sources ?? {}).filter(([, s]) => !s.available).map(([k, s]) => `${k} (${s.error})`);
 const cf = cloudflare.configured === false ? 'nicht konfiguriert' : cloudflare.error ? `Fehler: ${cloudflare.error}` : `ok${Object.keys(cloudflare.data?.partErrors ?? {}).length ? ` (Teilfehler: ${Object.keys(cloudflare.data.partErrors).join(', ')})` : ''}`;
-console.log(`Snapshot verschlüsselt geschrieben. BaLuBB: ${balubb.configured === false ? 'nicht konfiguriert' : `${okCount}/${sources.length} Quellen ok${failed.length ? `, ohne Antwort: ${failed.join(', ')}` : ''}`} · Cloudflare: ${cf} · Verlauf: ${prev.note}, jetzt ${history.points.length}`);
+console.log(`Snapshot verschlüsselt geschrieben. BaLuBB: ${balubb.configured === false ? 'nicht konfiguriert' : `${okCount}/${sources.length} Quellen ok${failed.length ? `, ohne Antwort: ${failed.join(', ')}` : ''}`} · Cloudflare: ${cf} · Filter: ${keywords.length ? keywords.join(' oder ') : 'aus'} · Verlauf: ${prev.note}, jetzt ${history.points.length}`);
