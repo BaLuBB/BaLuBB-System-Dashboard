@@ -319,3 +319,26 @@ body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger 
 .cp-slim { display: grid; grid-template-rows: auto auto auto; align-content: start; align-self: start; min-width: 0; }
 .cp-slim .row { justify-content: space-between; min-width: 0; gap: 6px; }
 .cp-slim .sub { min-height: 1.3em; line-height: 1.3; }
+
+/* Diashow: dickerer Rand, damit die Rundungen auch bei verkleinerter Darstellung sauber bleiben */
+.cp-tv .cp-card, .cp-tv .cp-maint { border-width: 2px; }
+
+/* ===== Ladeanimationen (Cockpit und Diashow; bei „weniger Bewegung“ aus) ===== */
+@media (prefers-reduced-motion: no-preference) {
+  .cp:not(.cp-tv) .cp-section > :not(header), .cp:not(.cp-tv) .cp-todo > .cp-card, .cp:not(.cp-tv) .cp-maint, .cp:not(.cp-tv) .cp-footer { animation: cp-rise .7s cubic-bezier(.2, .7, .2, 1) both; }
+  .cp-grid > .cp-card:nth-child(2), .cp-todo > .cp-card:nth-child(2) { animation-delay: .08s; }
+  .cp-grid > .cp-card:nth-child(3), .cp-todo > .cp-card:nth-child(3) { animation-delay: .16s; }
+  .cp-grid > .cp-card:nth-child(4) { animation-delay: .24s; } .cp-grid > .cp-card:nth-child(5) { animation-delay: .32s; } .cp-grid > .cp-card:nth-child(6) { animation-delay: .4s; }
+  .cp-section > header h2 { animation: cp-slide .6s cubic-bezier(.2, .7, .2, 1) both; }
+  /* Diagramme: Säulen wachsen aus der Grundlinie, Flächen und Linien blenden sich von links ein, der Ring dreht ein */
+  .cp .cp-chart svg rect { transform-box: fill-box; transform-origin: 50% 100%; animation: cp-barup .8s cubic-bezier(.2, .7, .2, 1) .25s both; }
+  .cp .cp-chart svg path { animation: cp-wipe 1.1s cubic-bezier(.3, .6, .2, 1) .3s both; }
+  .cp .cp-donut svg path, .cp .cp-donut svg circle { transform-box: fill-box; transform-origin: 50% 50%; animation: cp-ring 1s cubic-bezier(.2, .7, .2, 1) .2s both; }
+  .cp-hbar .bar, .cp-slim .fill, .cp-meter .fill { transform-origin: left; animation: cp-grow 1s cubic-bezier(.2, .7, .2, 1) .25s both; }
+  .cp-big { animation: cp-pop .7s cubic-bezier(.2, .7, .2, 1) .15s both; display: inline-block; }
+}
+@keyframes cp-slide { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+@keyframes cp-barup { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes cp-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes cp-ring { from { opacity: 0; transform: rotate(-60deg) scale(.9); } to { opacity: 1; transform: none; } }
+@keyframes cp-pop { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
