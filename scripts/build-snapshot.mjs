@@ -1,8 +1,9 @@
-// Holt BaLuBB-Status und Cloudflare-Analytics und schreibt sie VERSCHLÜSSELT nach dist-pages/snapshot.enc.json.
-// Der Verlauf stammt aus dem zuletzt veröffentlichten (verschlüsselten) Snapshot der Seite selbst.
+// Holt BaLuBB-Status (alle freigegebenen Endpunkte) und Cloudflare-Analytics und schreibt sie VERSCHLÜSSELT
+// nach dist-pages/snapshot.enc.json. Der Verlauf stammt aus dem zuletzt veröffentlichten (verschlüsselten) Snapshot der Seite selbst.
 // Ohne DASHBOARD_PASSWORD wird nichts geschrieben: es darf nie Klartext veröffentlicht werden.
+// Die Logs öffentlicher Repos sind öffentlich: ausgegeben werden nur Zustände, nie Daten oder Schlüssel.
 import { mkdir, writeFile } from 'node:fs/promises';
-import { createBalubbClient } from '../server/balubb.js';
+import { createBalubbSuite } from '../server/balubbApi.js';
 import { createCloudflareClient } from '../server/cloudflare.js';
 import { encryptJson, decryptJson } from '../client/src/crypto.js';
 import { appendPoint, emptyHistory } from '../client/src/history.js';
@@ -38,16 +39,21 @@ async function loadPreviousHistory() {
 }
 
 const [balubb, cloudflare, prev] = await Promise.all([
-  createBalubbClient({ ttlMs: 0 })(),
+  createBalubbSuite({ ttlMs: 0 })(),
   createCloudflareClient({ ttlMs: 0 })(),
   loadPreviousHistory(),
 ]);
 
-const history = appendPoint(prev.history, balubb);
+// Serverzustände (aus /servers, sonst /health) für den Verlauf
+const items = balubb.sources?.servers?.data?.items ?? balubb.sources?.health?.data?.servers?.items;
+const history = items ? appendPoint(prev.history, { data: { servers: { items } } }) : prev.history;
+
 const snapshot = { generatedAt: new Date().toISOString(), intervalMin: INTERVAL_MIN, balubb, cloudflare, history };
 await mkdir(out, { recursive: true });
 await writeFile(`${out}/snapshot.enc.json`, JSON.stringify(await encryptJson(snapshot, password)));
 
-// Nur Zustände ausgeben, nie Daten oder Schlüssel
-const state = (r) => (r.configured === false ? 'nicht konfiguriert' : r.error ? `Fehler: ${r.error}` : 'ok');
-console.log(`Snapshot verschlüsselt geschrieben. BaLuBB: ${state(balubb)} · Cloudflare: ${state(cloudflare)} · Verlauf: ${prev.note}, jetzt ${history.points.length}`);
+const sources = Object.values(balubb.sources ?? {});
+const okCount = sources.filter((s) => s.available).length;
+const failed = Object.entries(balubb.sources ?? {}).filter(([, s]) => !s.available).map(([k, s]) => `${k} (${s.error})`);
+const cf = cloudflare.configured === false ? 'nicht konfiguriert' : cloudflare.error ? `Fehler: ${cloudflare.error}` : `ok${Object.keys(cloudflare.data?.partErrors ?? {}).length ? ` (Teilfehler: ${Object.keys(cloudflare.data.partErrors).join(', ')})` : ''}`;
+console.log(`Snapshot verschlüsselt geschrieben. BaLuBB: ${balubb.configured === false ? 'nicht konfiguriert' : `${okCount}/${sources.length} Quellen ok${failed.length ? `, ohne Antwort: ${failed.join(', ')}` : ''}`} · Cloudflare: ${cf} · Verlauf: ${prev.note}, jetzt ${history.points.length}`);

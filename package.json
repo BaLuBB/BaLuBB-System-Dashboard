@@ -1,6 +1,6 @@
 {
   "name": "balubb-system-dashboard",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "System-Dashboard für Team: CPU, RAM, Disk, Netzwerk, Prozesse, Sensoren, GPU",
@@ -8,10 +8,14 @@
     "dev": "concurrently -n api,web -c blue,green \"node --watch server/index.js\" \"vite\"",
     "build": "vite build",
     "start": "node server/index.js",
-    "test": "node --test server/server.test.js server/snapshot.test.js server/history.test.js server/alerts.test.js",
-    "build:pages": "VITE_STATIC=1 vite build --base ./ --outDir ../dist-pages && node scripts/build-snapshot.mjs dist-pages"
+    "test": "node --test server/server.test.js server/snapshot.test.js server/history.test.js server/tvmode.test.js server/cockpit.test.js server/balubbApi.test.js",
+    "build:pages": "VITE_STATIC=1 vite build --base ./ --outDir ../dist-pages && node scripts/build-snapshot.mjs dist-pages",
+    "demo": "VITE_STATIC=1 vite build --base ./ --outDir ../dist-pages && node scripts/demo-snapshot.mjs dist-pages"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/space-grotesk": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
     "express": "^4.21.2",
     "systeminformation": "^5.23.8"
   },
