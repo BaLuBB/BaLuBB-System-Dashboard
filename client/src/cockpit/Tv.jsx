@@ -80,6 +80,23 @@ function categoryStates(snap, st) {
 }
 
 /** Diashow: eine Seite, wechselt automatisch zwischen Kategorien; unten die Kategorien, keine Bedienung. */
+/** Uhr mit eigenem Sekundentakt: unabhängig vom Seitenwechsel und von den Daten der API. */
+function Clock() {
+  const [t, setT] = useState(() => new Date());
+  useEffect(() => {
+    const tick = () => setT(new Date());
+    const i = setInterval(tick, 1000);
+    document.addEventListener('visibilitychange', tick); // nach Standby/Hintergrund sofort korrigieren
+    return () => { clearInterval(i); document.removeEventListener('visibilitychange', tick); };
+  }, []);
+  return (
+    <div className="tv-clock" role="timer" aria-label="Uhrzeit">
+      {t.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+      <small>{t.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long' })}</small>
+    </div>
+  );
+}
+
 export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' }) {
   useKiosk(theme);
   const transform = useStageTransform();
@@ -132,7 +149,6 @@ export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' 
     return () => clearTimeout(t);
   }, [at, snap, slides.length]);
   const states = categoryStates(snap, st);
-  const d = new Date(now);
   const clock = (t) => new Date(t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 
   return (
@@ -146,7 +162,7 @@ export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' 
                 {connLostSince && <span className="tv-lost"> · Verbindung gestört seit {clock(connLostSince)}, zeige letzte Daten</span>}</p>
             </div>
             <div className="tv-state" data-state={st.state}><Pill state={st.state} /><span className="sentence">{st.text}</span></div>
-            <div className="tv-clock">{clock(now)}<small>{d.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long' })}</small></div>
+            <Clock />
           </header>
           <div className="tv-slide" key={at} ref={outer}><div className="tv-zoom" ref={inner} style={{ zoom }}>{cur.body}</div></div>
           <nav className="tv-cats" aria-label="Kategorien">
