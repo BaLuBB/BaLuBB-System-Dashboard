@@ -56,6 +56,14 @@ function TableView({ head, rows }) {
  * Zeitverlauf als Fläche (eine Reihe) oder Linien (mehrere Reihen). 2 px Linien, Raster nur als Haarlinie.
  * data: [{date, <key>: Zahl}], series: [{key, label, color, area?}]
  */
+/** Indizes der Datumsangaben unter dem Diagramm: Anfang, Mitte, Ende; bei wenig Platz nur Anfang und Ende, damit nichts aneinanderstößt. */
+function labelIndexes(n, plotW, fs) {
+  if (n <= 0) return [];
+  const need = fs * 3.9 * 1.5; // Breite eines Datums (z. B. „22.09.“) plus Abstand
+  const idx = plotW >= need * 3 ? [0, Math.floor((n - 1) / 2), n - 1] : [0, n - 1];
+  return idx.filter((v, i, a) => a.indexOf(v) === i);
+}
+
 export function TimeChart({ data, series, height = 170, format = compact, label }) {
   const s = useScale(), hf = useHeightFactor();
   const [ref, w] = useWidth();
@@ -88,7 +96,7 @@ export function TimeChart({ data, series, height = 170, format = compact, label 
               <text x={padL - 8 * s} y={Y(t) + fs * 0.35} textAnchor="end" fontSize={fs} fill="var(--muted)" fontFamily="var(--font-mono)">{format(t)}</text>
             </g>
           ))}
-          {[0, Math.floor((n - 1) / 2), n - 1].filter((v, i, a) => n > 0 && a.indexOf(v) === i).map((i, k, a) => (
+          {labelIndexes(n, w - padL - padR, fs).map((i, k, a) => (
             <text key={i} x={X(i)} y={H - 6 * s} fontSize={fs} fill="var(--muted)" fontFamily="var(--font-mono)"
               textAnchor={k === 0 ? 'start' : k === a.length - 1 ? 'end' : 'middle'}>{shortDate(data[i].date)}</text>
           ))}
@@ -136,7 +144,7 @@ export function Columns({ data, series, height = 170, label }) {
   const Y = (v) => padT + plotH - (v / max) * plotH;
   const gap = 2;
   const topPath = (x, y, w2, h) => { const r = Math.min(4, h / 2, w2 / 2); return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w2 - r}Q${x + w2},${y} ${x + w2},${y + r}V${y + h}Z`; };
-  const labelIdx = [0, Math.floor((n - 1) / 2), n - 1].filter((v, i, a) => n > 0 && a.indexOf(v) === i);
+  const labelIdx = labelIndexes(n, plotW, fs);
   const hv = hover != null ? data[hover] : null;
   return (
     <div className="cp-chart" ref={ref}>

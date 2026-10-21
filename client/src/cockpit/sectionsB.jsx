@@ -3,6 +3,7 @@ import { Columns, Donut, HBars, LegendList, Meter, TimeChart } from './charts.js
 import { bytesText, compact, dataOf, durationText, lastN, num, pctText, relTime, source, sumBy } from './data.js';
 import { sourceStates } from './status.js';
 import { filterLabel } from './filter.js';
+import { topServers } from './sectionsA.jsx';
 import { Card, Empty, Pill, Section, Unavailable } from './ui.jsx';
 
 /* ---------- Abläufe ---------- */
@@ -40,6 +41,17 @@ export function AutomationsSection({ snap }) {
                 <p className="cp-hero"><span className="cp-big">{num(a.runs_today)}</span><span className="cp-unit">Läufe heute</span></p>
                 <p className="cp-hero"><span className="cp-big" style={{ color: a.errors_today ? 'var(--crit)' : undefined }}>{num(a.errors_today)}</span><span className="cp-unit">{a.errors_today ? '✕ Fehler heute' : '✓ keine Fehler heute'}</span></p>
                 <p className="muted">{num(a.active)} von {num(a.total)} Abläufen aktiv</p>
+                {(a.items ?? []).some((x) => x.last_run) && (
+                  <>
+                    <hr className="cp-rule" />
+                    <h3>Zuletzt gelaufen</h3>
+                    <ul className="cp-lastruns">
+                      {[...a.items].filter((x) => x.last_run).sort((p, q) => Date.parse(q.last_run) - Date.parse(p.last_run)).slice(0, 4).map((x) => (
+                        <li key={x.name}><span>{x.name}</span><span className="muted">{relTime(x.last_run, Date.now())} · {/(err|fail|fehl)/i.test(x.last_status ?? '') ? '✕ Fehler' : '✓ ok'}</span></li>
+                      ))}
+                    </ul>
+                  </>
+                )}
                 <details className="cp-tableview">
                   <summary>Alle Abläufe ({num(a.total)})</summary>
                   <div className="scroll"><table className="cp-table"><thead><tr><th>Ablauf</th><th>Status</th><th className="num">Läufe</th><th className="num">Fehler</th></tr></thead>
@@ -57,12 +69,38 @@ export function AutomationsSection({ snap }) {
 /* ---------- Tickets, Bewerbungen, Moderation ---------- */
 const MOD = [['warn', 'Verwarnungen', 'var(--ramp-1)'], ['mute', 'Stummschaltungen', 'var(--ramp-2)'], ['timeout', 'Timeouts', 'var(--ramp-3)'], ['kick', 'Kicks', 'var(--ramp-4)'], ['ban', 'Banns', 'var(--ramp-5)']];
 
+/** Bei aktivem Namensfilter: Tickets, Bewerbungen, Moderation je passendem Server (die API liefert Tagesverläufe nur über alle Server). */
+export function SupportByServer({ snap }) {
+  const t = topServers(snap, 30, 'messages', 10);
+  const items = t.available ? t.items : [];
+  const sum = (f) => items.reduce((a, x) => a + (Number(f(x)) || 0), 0);
+  const rows = (f) => items.map((s) => ({ label: s.name, value: Number(f(s)) || 0 })).filter((r) => r.value > 0).sort((a, z) => z.value - a.value);
+  return (
+    <Section id="support" title="Tickets, Bewerbungen, Moderation" sub="je Server mit passendem Namen, letzte 30 Tage">
+      <div className="cp-grid cols-3">
+        <Card title="Tickets">
+          <p className="cp-hero"><span className="cp-big">{num(sum((s) => s.tickets?.open))}</span><span className="cp-unit">offen · {num(sum((s) => s.tickets?.total))} gesamt · {num(sum((s) => s.tickets?.created))} neu</span></p>
+          <HBars rows={rows((s) => s.tickets?.total)} empty="Keine Tickets." />
+        </Card>
+        <Card title="Bewerbungen">
+          <p className="cp-hero"><span className="cp-big">{num(sum((s) => s.applications?.submitted))}</span><span className="cp-unit">neu · {num(sum((s) => s.applications?.total))} gesamt</span></p>
+          <HBars rows={rows((s) => s.applications?.total)} empty="Keine Bewerbungen." />
+        </Card>
+        <Card title="Moderation">
+          <p className="cp-hero"><span className="cp-big">{num(sum((s) => s.moderation?.total))}</span><span className="cp-unit">Aktionen</span></p>
+          <HBars rows={rows((s) => s.moderation?.total)} empty="Keine Aktionen." />
+        </Card>
+      </div>
+    </Section>
+  );
+}
+
 export function SupportSection({ snap, range }) {
-  const t = source(snap, 'tickets'), ap = source(snap, 'applications'), mo = source(snap, 'moderation');
-  if (t.hidden && ap.hidden && mo.hidden) return null;
+  const t = source(snap, 'tickets'), ap = source(snap, 'applications'), mo = source(snap, 'moderation'), fb = source(snap, 'feedback');
+  if (t.hidden && ap.hidden && mo.hidden) return <SupportByServer snap={snap} />;
   return (
     <Section id="support" title="Tickets, Bewerbungen, Moderation" sub={`letzte ${range} Tage`}>
-      <div className="cp-grid cols-3">
+      <div className={`cp-grid cols-${fb.available && fb.data.volume?.length > 0 ? 4 : 3}`}>
         <Card title="Tickets">
           {!t.available ? <Unavailable /> : (() => {
             const d = t.data, vol = lastN(d.volume, range);
@@ -101,6 +139,12 @@ export function SupportSection({ snap, range }) {
             );
           })()}
         </Card>
+        {fb.available && fb.data.volume?.length > 0 && (
+          <Card title="Feedback" right={fb.data.total != null ? `${num(fb.data.total)} gesamt` : undefined}>
+            <p className="cp-hero"><span className="cp-big">{num(sumBy(lastN(fb.data.volume, range), (x) => x.received))}</span><span className="cp-unit">erhalten in {Math.min(range, fb.data.volume.length)} Tagen</span></p>
+            <Columns data={lastN(fb.data.volume, range).map((x) => ({ date: x.date, values: [x.received] }))} series={[{ label: 'Erhalten', color: 'var(--blue-line)' }]} label="Feedback pro Tag" />
+          </Card>
+        )}
       </div>
     </Section>
   );
@@ -130,7 +174,7 @@ export function SystemSection({ snap }) {
           {!counts.available ? <Unavailable /> : <Def rows={[
             ['Ticket-Kategorien', num(counts.data.ticket_categories)], ['Panels', num(counts.data.ticket_panels)], ['Buttons', num(counts.data.ticket_buttons)],
             ['Rollen-Links', num(counts.data.role_links)], ['Turniere', `${num(counts.data.tournaments)} (${num(counts.data.tournament_entries)} Einträge)`],
-            ['Status-Abonnenten', num(counts.data.status_subscribers)]]} />}
+            ['Status-Abonnenten', num(counts.data.status_subscribers)], ['Server-Einstellungen', num(counts.data.server_settings_rows)]]} />}
         </Card>
       </div>
     </Section>
@@ -140,9 +184,8 @@ export function SystemSection({ snap }) {
 /* ---------- Aktivität im Dashboard ---------- */
 export function ActivitySection({ snap, range, compact = false }) {
   const act = source(snap, 'dashboardActivity');
-  if (act.hidden) return null;
   return (
-    <Section id="aktivitaet" title="Aktivität im Dashboard" sub={`letzte ${range} Tage, nur Zahlen je Art und Tag`}>
+    <Section id="aktivitaet" title="Aktivität im Dashboard" sub={`letzte ${range} Tage, nur Zahlen je Art und Tag${snap.filter?.keywords?.length ? ' · alle Server (nicht nach Namen aufteilbar)' : ''}`}>
       {!act.available ? <Card><Unavailable /></Card> : (() => {
         const daily = lastN(act.data.daily, range), total = sumBy(daily, (d) => d.actions);
         return (
@@ -249,7 +292,7 @@ export function Footer({ snap }) {
   const cf = snap.cloudflare;
   return (
     <footer className="cp-footer">
-      {snap.filter?.keywords?.length > 0 && <div>Filter: Dienste, Abläufe und Top-Server nur mit {filterLabel(snap.filter.keywords)} im Namen. Statistiken über alle Server (Gesamtlage, Tickets, Bewerbungen, Moderation, Dashboard-Aktivität) sind ausgeblendet; je Server stehen die Zahlen bei Top-Server.</div>}
+      {snap.filter?.keywords?.length > 0 && <div>Filter: Dienste, Abläufe und Top-Server nur mit {filterLabel(snap.filter.keywords)} im Namen. Gesamtlage, Tickets, Bewerbungen und Moderation stammen nur von diesen Servern; die Dashboard-Aktivität lässt sich nicht nach Namen aufteilen und zeigt alle Server.</div>}
       <div>Nur lesen · Datenquellen: BaLuBB-API und Cloudflare-Analysen · Version {typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '1'} · Stand {new Date(snap.generatedAt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}</div>
       <div className="cp-sources" aria-label="Zustand der Datenquellen">
         {states.filter((s) => !s.hidden).map((s) => <span key={s.name} className={s.available ? 'ok' : 'bad'} title={s.error}>{LABEL[s.name] ?? s.name}{s.available ? '' : ' (gerade nicht verfügbar)'}</span>)}

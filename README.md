@@ -74,13 +74,19 @@ keine Nutzernamen, IDs oder Nachrichten.
 
 ### Namensfilter
 
-Angezeigt werden nur Dienste, Abläufe, Top-Server und die Listen unter „Zu erledigen“ (Aktivierungen, Feedback, Custom-Bot-Anfragen), deren **Name „BaLuBB“ oder „Bot“ enthält** (ohne Beachtung der
-Groß-/Kleinschreibung, als Teilwort: „Botschaft“ würde ebenfalls passen). Der Filter wirkt schon beim Erzeugen des Snapshots, die
-anderen Namen werden also gar nicht erst veröffentlicht (auch nicht verschlüsselt). Die Gesamtlage (Nachrichten, Sprachstunden, Beitritte/Abgänge) wird aus den Tagesverläufen der passenden Server neu zusammengesetzt, Tickets/Bewerbungen/Moderation stehen je passendem Server bei Support. Summen über alle Server, die sich nicht aufteilen lassen (Dashboard-Aktivität; ohne Filter: Gesamtlage,
-Tickets, Bewerbungen, Moderation, Dashboard-Aktivität, Cloudflare) lassen sich nicht nach Namen aufteilen und bleiben unverändert;
-die Ablauf-Zahlen „Läufe/Fehler“ der API zählen alle Abläufe und sind entsprechend gekennzeichnet. Ändern: *Settings → Secrets and
-variables → Actions → Variables →* `NAME_FILTER` (kommagetrennt, z. B. `BaLuBB,Bot,Status`; `off` schaltet den Filter ab).
-Fest ausgeblendet ist außerdem der Server **„Test Bot 1“** (exakter Name, `DEFAULT_EXCLUDE` in `client/src/cockpit/filter.js`).
+Angezeigt werden nur Dienste, Abläufe, Top-Server und die Listen unter „Zu erledigen“ (Aktivierungen, Feedback, Custom-Bot-Anfragen), deren **Name „BaLuBB“ oder „Bot“ enthält**
+(ohne Beachtung der Groß-/Kleinschreibung, als Teilwort). Fest ausgeblendet ist außerdem der Server **„Test Bot 1“** (exakter Name, `DEFAULT_EXCLUDE` in
+`client/src/cockpit/filter.js`). Der Filter wirkt schon beim Erzeugen des Snapshots, andere Namen werden also gar nicht erst veröffentlicht (auch nicht verschlüsselt).
+
+Was bei aktivem Filter mit den Zahlen passiert:
+
+- **Gesamtlage** (Nachrichten, Sprachstunden, Beitritte/Abgänge): wird aus den Tagesverläufen der passenden Server je Tag neu zusammengesetzt.
+- **Tickets, Bewerbungen, Moderation:** je passendem Server (Summen und Balken). Tagesverläufe gibt es dafür nur über alle Server, deshalb entfallen sie.
+- **Zu erledigen:** Einträge anderer Server fallen weg, Zähler folgen; Gesamtzahlen, Statusverteilung und Feedback-Verlauf über alle Server werden nicht veröffentlicht.
+- **Dashboard-Aktivität** und **Cloudflare** lassen sich nicht nach Namen aufteilen; die Dashboard-Aktivität zeigt alle Server und ist so beschriftet.
+- Die Ablauf-Zahlen „Läufe/Fehler“ der API zählen alle Abläufe und sind entsprechend gekennzeichnet.
+
+Ändern: *Settings → Secrets and variables → Actions → Variables →* `NAME_FILTER` (kommagetrennt, z. B. `BaLuBB,Bot,Status`; `off` schaltet den Filter ab, dann gelten überall die Summen über alle Server).
 
 ### Zuverlässige Aktualisierung (Cloudflare-Worker)
 
