@@ -36,6 +36,23 @@ Die Verbindung ist unverschlüsselt (HTTP); nur im vertrauenswürdigen Netz oder
 | `HOST` | `127.0.0.1` | Bind-Adresse (`0.0.0.0` = alle) |
 | `TOKEN` | – | Zugriffstoken für die API |
 | `INTERVAL_MS` | `2000` | Messintervall |
+| `BALUBB_API_KEY` | – | Key für die BaLuBB-API (aktiviert die Server-Kachel) |
+| `BALUBB_API_URL` | `https://bot.balubb.de/api/ext/v1/health` | Health-Endpunkt |
+| `BALUBB_TTL_MS` | `30000` | Cache-Dauer der API-Antwort |
+
+## BaLuBB-Serverstatus (optional)
+
+Mit gesetztem API-Key zeigt das Dashboard zusätzlich eine Kachel mit den BaLuBB-Servern,
+dem Release und geplanten Wartungen (Quelle: `https://bot.balubb.de/api/ext/v1/health`).
+
+```bash
+BALUBB_API_KEY=dein-key npm start
+```
+
+Der Key bleibt auf dem Server und gelangt nie ins Frontend. Die Antwort wird 30 s gecacht
+(`BALUBB_TTL_MS`), die API erlaubt 60 Anfragen pro Minute. Ohne Key erscheint keine Kachel.
+Der Server, auf dem das Dashboard läuft, muss bei Cloudflare für `/api/ext/` von der
+Managed Challenge ausgenommen sein, sonst antwortet die API mit 403.
 
 Das Dashboard zeigt immer das System, auf dem der Server läuft. Für mehrere Rechner
 den Server auf jedem Rechner starten.

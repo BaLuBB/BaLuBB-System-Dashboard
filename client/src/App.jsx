@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStats } from './useStats.js';
 import { Bar, Card, Spark, Stat, Table } from './components.jsx';
+import BalubbCard from './BalubbCard.jsx';
 import { bytes, duration, pct, rate } from './format.js';
 
 export default function App() {
@@ -84,6 +85,8 @@ export default function App() {
             <Bar value={battery.percent} label={`${battery.percent} % ${battery.charging ? '(lädt)' : ''}`} />
           </Card>
         )}
+
+        <BalubbCard />
 
         <Card title="Top Prozesse (CPU)" wide right={`${processes.total} gesamt · ${processes.running} aktiv`}>
           <Table head={procHead} rows={processes.topCpu.map(procRow)} />

@@ -21,3 +21,34 @@ test('API liefert Stats und Info', async () => {
   server.close();
   app.locals.stop();
 });
+
+import { createBalubbClient } from './balubb.js';
+
+const fakeRes = (status, body, headers = {}) => ({
+  ok: status < 400, status, json: async () => body, headers: new Headers(headers),
+});
+
+test('BaLuBB-Client: ohne Key nicht konfiguriert', async () => {
+  assert.deepEqual(await createBalubbClient({ key: '' })(), { configured: false });
+});
+
+test('BaLuBB-Client: sendet Bearer-Key und cached', async () => {
+  let calls = 0, auth;
+  const get = createBalubbClient({
+    key: 'geheim', ttlMs: 60_000,
+    fetchImpl: async (_u, o) => { calls++; auth = o.headers.Authorization; return fakeRes(200, { ok: true }); },
+  });
+  const a = await get();
+  await get();
+  assert.equal(calls, 1);
+  assert.equal(auth, 'Bearer geheim');
+  assert.equal(a.data.ok, true);
+  assert.ok(!JSON.stringify(a).includes('geheim'));
+});
+
+test('BaLuBB-Client: erkennt Cloudflare-Challenge und Netzfehler', async () => {
+  const challenged = await createBalubbClient({ key: 'k', ttlMs: 0, fetchImpl: async () => fakeRes(403, {}, { 'cf-mitigated': 'challenge' }) })();
+  assert.match(challenged.error, /403.*Cloudflare/);
+  const down = await createBalubbClient({ key: 'k', ttlMs: 0, fetchImpl: async () => { throw new Error('boom'); } })();
+  assert.match(down.error, /boom/);
+});

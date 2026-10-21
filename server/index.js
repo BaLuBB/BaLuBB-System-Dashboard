@@ -3,6 +3,7 @@ import path from 'node:path';
 import { timingSafeEqual } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { collect, staticInfo } from './collector.js';
+import { createBalubbClient } from './balubb.js';
 
 const PORT = Number(process.env.PORT ?? 3000);
 // Standard: nur lokal. Für Kollegen im Netz: HOST=0.0.0.0 (und TOKEN setzen!)
@@ -16,7 +17,7 @@ const tokenOk = (given = '') => {
   return a.length === b.length && timingSafeEqual(a, b);
 };
 
-export function createApp({ sample = collect, info = staticInfo } = {}) {
+export function createApp({ sample = collect, info = staticInfo, balubb = createBalubbClient() } = {}) {
   const app = express();
   let latest = null;
   let infoCache = null;
@@ -49,6 +50,8 @@ export function createApp({ sample = collect, info = staticInfo } = {}) {
     if (!latest) return res.status(503).json({ error: failed ?? 'Noch keine Messung' });
     res.json({ ...latest, intervalMs: INTERVAL_MS, stale: Boolean(failed) });
   });
+
+  app.get('/api/balubb', async (_req, res) => res.json(await balubb()));
 
   const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist');
   app.use(express.static(dist));
