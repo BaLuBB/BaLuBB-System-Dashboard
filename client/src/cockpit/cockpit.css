@@ -287,3 +287,8 @@ body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger 
 .cp-slim .row { white-space: nowrap; gap: 8px; } .cp-slim .sub { color: var(--muted); font-size: .8rem; margin-top: 2px; font-family: var(--font-mono); }
 .cp-legend-list .row > * { white-space: nowrap; }
 .cp-tv .cp-srv .up { display: none; }
+
+/* Aktivität: die drei Karten der Gesamtlage stehen untereinander, jede über die volle Breite */
+.cp-tv .tv-lage .cp-grid.cols-3 { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.cp-tv .tv-lage .cp-card { grid-template-columns: minmax(0, 17rem) minmax(0, 1fr); column-gap: 24px; align-items: center; }
+.cp-tv .tv-lage .cp-card > :not(.cp-chart):not(svg):not(.cp-legend) { grid-column: 1; }

@@ -111,7 +111,7 @@ export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' 
     const list = [
       { name: 'Überblick', hf: 0.7, body: <OverviewSlide snap={snap} now={now} /> },
       { name: 'Server', hf: 0.62, body: <ServerSlide snap={snap} now={now} /> },
-      { name: 'Aktivität', hf: 1.25, body: <OverviewSection snap={snap} range={30} /> },
+      { name: 'Aktivität', hf: 0.5, body: <div className="tv-lage"><OverviewSection snap={snap} range={30} /></div> },
       { name: 'Top-Server', hf: 0.7, body: <TopBarsSlide snap={snap} />, skip: topEmpty },
       { name: 'Abläufe', hf: 0.95, body: <AutomationsSection snap={snap} /> },
       { name: 'Support', hf: 0.85, body: <SupportSection snap={snap} range={30} /> },
