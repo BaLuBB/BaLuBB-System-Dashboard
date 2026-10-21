@@ -50,7 +50,7 @@ export function ServerSlide({ snap, now }) {
   return (
     <div className="tv-cols tv-servers">
       <StatusSection snap={snap} now={now} compact />
-      <div className="tv-stack">
+      <Section id="verfuegbarkeit" title="Verfügbarkeit und Verlauf" sub="letzte 24 Stunden">
         <Card title="Verfügbarkeit der letzten 24 Stunden">
           <HBars rows={[...up].sort((a, z) => a.uptime - z.uptime).map((u) => ({ label: u.name, value: u.uptime }))} max={100} format={(v) => pctText(v, 0)}
             empty="Der Verlauf füllt sich mit jedem Lauf." />
@@ -58,7 +58,7 @@ export function ServerSlide({ snap, now }) {
         <Card title="Laufende Server im Verlauf" right={`bis ${total} Server`}>
           {series.length > 1 ? <TimeChart data={series} series={[{ key: 'running', label: 'Laufende Server', color: 'var(--blue-line)' }]} label="Laufende Server im Verlauf" /> : <p className="cp-empty">Der Verlauf füllt sich mit jedem Lauf.</p>}
         </Card>
-      </div>
+      </Section>
     </div>
   );
 }

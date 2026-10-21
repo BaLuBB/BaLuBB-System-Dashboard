@@ -292,3 +292,24 @@ body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger 
 .cp-tv .tv-lage .cp-grid.cols-3 { grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .cp-tv .tv-lage .cp-card { grid-template-columns: minmax(0, 17rem) minmax(0, 1fr); column-gap: 24px; align-items: center; }
 .cp-tv .tv-lage .cp-card > :not(.cp-chart):not(svg):not(.cp-legend) { grid-column: 1; }
+
+/* Diashow: Oberkanten bündig, gleiche Höhen, volle Breite und Höhe der Bühne */
+.cp-tv .tv-zoom { display: flex; flex-direction: column; }
+.cp-tv .tv-zoom > * { flex: 1 1 auto; min-width: 0; }
+.cp-tv .tv-cols { align-items: stretch; width: 100%; }
+.cp-tv .tv-cols > .cp-section, .cp-tv .tv-cols > .tv-stack { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.cp-tv .tv-cols > .tv-stack { gap: 16px; }
+.cp-tv .tv-cols > .cp-section > :last-child, .cp-tv .tv-cols > .tv-stack > :last-child, .cp-tv .tv-stack > .cp-section:last-child > :last-child { flex: 1 1 auto; }
+.cp-tv .tv-cols > .tv-stack > .cp-section { flex: 1 1 auto; display: flex; flex-direction: column; }
+.cp-tv .tv-cols > .cp-section > .cp-card:last-child, .cp-tv .tv-stack > .cp-card:last-child { flex: 1 1 auto; }
+.cp-tv .tv-zoom > .cp-section, .cp-tv .tv-zoom > .tv-lage > .cp-section, .cp-tv .tv-zoom > .tv-stack { display: flex; flex-direction: column; }
+.cp-tv .tv-zoom > .tv-lage { display: flex; flex-direction: column; }
+.cp-tv .tv-zoom > .cp-section > .cp-grid, .cp-tv .tv-lage .cp-section > div:last-child, .cp-tv .tv-zoom > .tv-lage .cp-grid { flex: 1 1 auto; grid-auto-rows: 1fr; }
+.cp-tv .tv-zoom > .cp-section > .cp-card { flex: 1 1 auto; }
+.cp-tv .cp-grid > .cp-card, .cp-tv .tv-cols .cp-todo > .cp-card { height: 100%; }
+.cp-tv .tv-cols .cp-todo { flex: 1 1 auto; grid-auto-rows: 1fr; }
+.cp-tv .tv-cols > .tv-stack > .cp-section > .cp-card { flex: 1 1 auto; }
+.cp-tv .tv-zoom > .tv-stack > .cp-section { display: flex; flex-direction: column; }
+.cp-tv .tv-zoom > .tv-stack > .cp-section:last-child, .cp-tv .tv-lage > .cp-section { flex: 1 1 auto; }
+.cp-tv .tv-zoom > .tv-stack > .cp-section:last-child > :last-child { flex: 1 1 auto; }
+.cp-tv .tv-servers .cp-card { align-content: space-evenly; }

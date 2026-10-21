@@ -116,7 +116,7 @@ export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' 
       { name: 'Abläufe', hf: 0.95, body: <AutomationsSection snap={snap} /> },
       { name: 'Support', hf: 0.85, body: <SupportSection snap={snap} range={30} /> },
     ];
-    if (hasCf) list.push({ name: 'Cloudflare', hf: 0.7, body: <CloudflareSection snap={snap} range={30} /> });
+    if (hasCf) list.push({ name: 'Cloudflare', hf: 0.5, body: <CloudflareSection snap={snap} range={30} /> });
     list.push({ name: 'System', hf: 0.7, body: <div className="tv-stack"><SystemSection snap={snap} /><ReleasesSection snap={snap} limit={4} /></div> });
     list.push({ name: 'Dashboard', hf: 1.1, body: <ActivitySection snap={snap} range={30} /> });
     return list.filter((x) => !x.skip);
@@ -136,12 +136,15 @@ export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' 
     const fit = () => {
       const o = outer.current, i = inner.current;
       if (!o || !i) return;
-      let best = 1;
-      for (const z of [1.45, 1.35, 1.25, 1.15, 1.08]) {
+      i.style.minHeight = '0';
+      let best = 0.88;
+      for (const z of [1.6, 1.5, 1.4, 1.3, 1.2, 1.12, 1.06, 1, 0.94, 0.88]) {
         i.style.zoom = z;
-        if (i.getBoundingClientRect().height <= o.getBoundingClientRect().height - 20) { best = z; break; }
+        if (i.getBoundingClientRect().height <= o.getBoundingClientRect().height - 24) { best = z; break; }
       }
       i.style.zoom = best;
+      // Restliche Höhe füllen: die Karten werden gestreckt, die Unterkanten schließen bündig ab
+      i.style.minHeight = `${Math.floor((o.offsetHeight - 2) / best)}px`;
       setZoom(best);
     };
     fit();
