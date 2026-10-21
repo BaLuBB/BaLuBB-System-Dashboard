@@ -55,7 +55,8 @@ export default function Cockpit({ snap, onLogout, onTvLink, error }) {
               {RANGES.map((r) => <button key={r} type="button" aria-pressed={range === r} onClick={() => setRange(r)}>{r} Tage</button>)}
             </div>
             <button type="button" className="cp-btn" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={`Darstellung wechseln, aktuell ${theme === 'dark' ? 'dunkel' : 'hell'}`}>{theme === 'dark' ? 'Hell' : 'Dunkel'}</button>
-            {onTvLink && <button type="button" className="cp-btn" onClick={onTvLink} title="Link für den Fernseher (enthält das Passwort)">TV-Link</button>}
+            {onTvLink && <button type="button" className="cp-btn" onClick={onTvLink} title="Link für die Diashow (enthält das Passwort)">Diashow-Link</button>}
+            <button type="button" className="cp-btn" onClick={() => { location.hash = ''; location.reload(); }}>Diashow</button>
             <button type="button" className="cp-btn" onClick={onLogout}>Abmelden</button>
           </div>
         </header>

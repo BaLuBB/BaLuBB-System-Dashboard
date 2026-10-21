@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { MaintenanceBars, OverviewSection, StatusSection, TodoSection, TopServersSection } from './sectionsA.jsx';
+import { OverviewSection } from './sectionsA.jsx';
+import { OverviewSlide, ServerSlide, TopBarsSlide } from './tvSlides.jsx';
 import { AutomationsSection, ActivitySection, CloudflareSection, ReleasesSection, SupportSection, SystemSection } from './sectionsB.jsx';
+import { dataOf } from './data.js';
 import { overallStatus } from './status.js';
 import { Pill, ScaleContext } from './ui.jsx';
 import { useNow } from './Cockpit.jsx';
@@ -44,35 +46,55 @@ export function TvMessage({ title, text, theme = 'dark' }) {
   return <div className="cp cp-tvmsg"><div><h1>{title}</h1><p className="muted">{text}</p></div></div>;
 }
 
-/** Fernseher-Ansicht: keine Bedienung, wechselt automatisch zwischen den Seiten. */
+const ICON = { warn: '▲', crit: '✕', maint: '◆' };
+
+/** Kennzeichen je Kategorie: nur bei Auffälligkeiten ein Symbol (nie Farbe allein). */
+function categoryStates(snap, st) {
+  const servers = dataOf(snap, 'servers')?.items ?? dataOf(snap, 'health')?.servers?.items ?? [];
+  const off = servers.filter((x) => x.state === 'offline').length, starting = servers.filter((x) => x.state === 'starting').length;
+  const auto = dataOf(snap, 'automations');
+  const cf = snap.cloudflare;
+  const e5 = cf?.data ? (cf.data.status.find((x) => x.klass === '5xx')?.requests ?? 0) / (cf.data.totals.requests || 1) : 0;
+  return {
+    Überblick: st.state === 'ok' ? null : st.state,
+    Server: servers.length && off === servers.length ? 'crit' : off || starting ? 'warn' : null,
+    Abläufe: auto?.errors_today > 0 ? 'warn' : null,
+    Cloudflare: cf?.error || e5 > 0.01 ? 'warn' : null,
+  };
+}
+
+/** Diashow: eine Seite, wechselt automatisch zwischen Kategorien; unten die Kategorien, keine Bedienung. */
 export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' }) {
   useKiosk(theme);
   const transform = useStageTransform();
   const now = useNow(10_000);
   const st = overallStatus(snap, now);
+  const hasCf = snap.cloudflare && snap.cloudflare.configured !== false;
 
   const slides = useMemo(() => {
-    const list = [];
-    list.push({ name: 'Lage', hf: 0.72, body: (
-      <div className="tv-cols tv-lage">
-        <div className="tv-stack"><TodoSection snap={snap} now={now} /><MaintenanceBars snap={snap} now={now} /></div>
-        <StatusSection snap={snap} now={now} compact />
-      </div>) });
-    list.push({ name: 'Gesamtlage', hf: 0.5, body: <div className="tv-stack"><OverviewSection snap={snap} range={30} /><TopServersSection snap={snap} range={30} expandable={false} fixedCount={5} fixedBy="messages" /></div> });
-    list.push({ name: 'Abläufe und Support', hf: 0.52, body: <div className="tv-stack"><AutomationsSection snap={snap} /><SupportSection snap={snap} range={30} /></div> });
-    if (snap.cloudflare && snap.cloudflare.configured !== false) list.push({ name: 'Cloudflare', hf: 0.7, body: <CloudflareSection snap={snap} range={30} /> });
-    list.push({ name: 'System und Aktivität', hf: 0.5, body: <div className="tv-stack"><SystemSection snap={snap} /><ActivitySection snap={snap} range={30} compact /><ReleasesSection snap={snap} limit={4} compact /></div> });
+    const list = [
+      { name: 'Überblick', hf: 0.7, body: <OverviewSlide snap={snap} now={now} /> },
+      { name: 'Server', hf: 0.62, body: <ServerSlide snap={snap} now={now} /> },
+      { name: 'Aktivität', hf: 1.25, body: <OverviewSection snap={snap} range={30} /> },
+      { name: 'Top-Server', hf: 0.7, body: <TopBarsSlide snap={snap} /> },
+      { name: 'Abläufe', hf: 0.95, body: <AutomationsSection snap={snap} /> },
+      { name: 'Support', hf: 0.85, body: <SupportSection snap={snap} range={30} /> },
+    ];
+    if (hasCf) list.push({ name: 'Cloudflare', hf: 0.7, body: <CloudflareSection snap={snap} range={30} /> });
+    list.push({ name: 'System', hf: 0.7, body: <div className="tv-stack"><SystemSection snap={snap} /><ReleasesSection snap={snap} limit={4} /></div> });
+    list.push({ name: 'Dashboard', hf: 1.1, body: <ActivitySection snap={snap} range={30} /> });
     return list;
-  }, [snap, now]);
+  }, [snap, now, hasCf]);
 
   const [idx, setIdx] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setIdx((i) => i + 1), slideSec * 1000);
     return () => clearInterval(t);
   }, [slideSec]);
-  const cur = slides[idx % slides.length];
+  const at = idx % slides.length, cur = slides[at];
+  const states = categoryStates(snap, st);
   const d = new Date(now);
-  const top = st.notes.filter((n) => n.level !== 'info').slice(0, 2);
+  const clock = (t) => new Date(t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <ScaleContext.Provider value={{ s: S, h: cur.hf ?? 0.7 }}>
@@ -81,21 +103,26 @@ export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' 
           <header className="tv-head">
             <div className="tv-title">
               <h1>BaLuBB System</h1>
-              <p className="muted">Stand {new Date(snap.generatedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr
-                {connLostSince && <span className="tv-lost"> · Verbindung gestört seit {new Date(connLostSince).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}, zeige letzte Daten</span>}</p>
+              <p className="muted">Stand {clock(Date.parse(snap.generatedAt))} Uhr
+                {connLostSince && <span className="tv-lost"> · Verbindung gestört seit {clock(connLostSince)}, zeige letzte Daten</span>}</p>
             </div>
             <div className="tv-state" data-state={st.state}><Pill state={st.state} /><span className="sentence">{st.text}</span></div>
-            <div className="tv-clock">{d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}<small>{d.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long' })}</small></div>
+            <div className="tv-clock">{clock(now)}<small>{d.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long' })}</small></div>
           </header>
-          {top.length > 0 && cur.name !== 'Lage' && (
-            <div className="tv-notes">{top.map((n, i) => <span key={i}><Pill state={n.level === 'crit' ? 'crit' : n.level === 'maint' ? 'maint' : 'warn'}>{n.level === 'crit' ? 'Fehler' : n.level === 'maint' ? 'Wartung' : 'Warnung'}</Pill> {n.text}</span>)}</div>
-          )}
-          <div className="tv-slide" key={idx % slides.length}>{cur.body}</div>
-          <footer className="tv-foot">
-            <span>{cur.name}</span>
-            <span className="tv-dots" aria-hidden="true">{slides.map((s, i) => <i key={s.name} className={i === idx % slides.length ? 'on' : ''} />)}</span>
-            <span>wechselt alle {slideSec} s</span>
-          </footer>
+          <div className="tv-slide" key={at}>{cur.body}</div>
+          <nav className="tv-cats" aria-label="Kategorien">
+            {slides.map((s, i) => {
+              const state = states[s.name];
+              return (
+                <div key={s.name} className={`tv-cat${i === at ? ' on' : ''}`} aria-current={i === at ? 'true' : undefined}>
+                  <span className="num">{i + 1}</span>
+                  <span className="name">{s.name}</span>
+                  {state && <i className="ind" data-state={state} aria-label={state === 'crit' ? 'Fehler' : 'Warnung'}>{ICON[state]}</i>}
+                  {i === at && <span className="prog" key={idx} style={{ animationDuration: `${slideSec}s` }} />}
+                </div>
+              );
+            })}
+          </nav>
         </div>
       </div>
     </ScaleContext.Provider>
