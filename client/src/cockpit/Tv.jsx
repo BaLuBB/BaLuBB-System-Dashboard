@@ -26,7 +26,7 @@ function useStageTransform() {
   return t;
 }
 
-/** Bildschirm wach halten (wo erlaubt), Cursor ausblenden und regelmäßig neu laden, damit neue Versionen ankommen. */
+/** Bildschirm wach halten (wo erlaubt) und regelmäßig neu laden, damit neue Versionen ankommen. Der Mauszeiger bleibt sichtbar. */
 function useKiosk(theme) {
   const lock = useRef(null);
   useEffect(() => {

@@ -194,7 +194,7 @@ html[data-cp-theme="light"] body { background: #f5f7f9; }
 .cp-check input { width: 20px; height: 20px; }
 
 /* ===== TV: feste Bühne 1920x1080 in rem-artiger Größe (Basis 22 px), keine Bedienung ===== */
-body.cp-kiosk { overflow: hidden; cursor: none; user-select: none; margin: 0; }
+body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger bleibt sichtbar */
 .cp-tv { font-size: 22px; min-height: 100vh; overflow: hidden; }
 .cp-tv .tv-stage { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; transform-origin: top left; padding: 24px 40px 20px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
 .cp-tv h1 { font-size: 2rem; } .cp-tv h2 { font-size: 1.2rem; } .cp-tv h3 { font-size: 1rem; }

@@ -48,7 +48,7 @@ Beim ersten Mal erscheint ein großes Passwortfeld. Passwort tippen, Enter. Dana
 Auch `#tv&pw=…` aus früheren Links funktioniert weiter.
 
 Die Diashow meldet sich selbst an, passt sich jeder Bildschirmgröße an (feste 1920×1080-Bühne, skaliert), hält den Bildschirm wach
-(wo der Browser es erlaubt), blendet den Mauszeiger aus, lädt sich alle 6 Stunden neu und zeigt bei Verbindungsproblemen die letzten
+(wo der Browser es erlaubt), lädt sich alle 6 Stunden neu und zeigt bei Verbindungsproblemen die letzten
 Daten mit Hinweis. Optionen im Link: `slide=30` (Sekunden je Kategorie, mindestens 3), `theme=light`.
 Wird das Passwort geändert, den Link einmal mit dem neuen Passwort öffnen. Auf gemeinsam genutzten Rechnern beim Anmelden
 „Auf diesem Gerät angemeldet bleiben“ abwählen.
