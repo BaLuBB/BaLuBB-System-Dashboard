@@ -31,6 +31,10 @@ export function readOptions(hash = typeof location === 'undefined' ? '' : locati
   };
 }
 
-/** Erzeugt den Link für den Fernseher; das Passwort wird dafür URL-kodiert (+, &, # usw. sind damit sicher). */
-export const tvLink = (password, base = `${location.origin}${location.pathname}`) =>
-  SAFE_PASSWORD.test(password) ? `${base}#${password}` : `${base}#pw=${encodeURIComponent(password)}`;
+/** Wurzel der Seite aus dem Pfad: aus /Repo/ oder /Repo/tv/ wird /Repo/ (mit abschließendem Schrägstrich). */
+export const siteRoot = (pathname = typeof location === 'undefined' ? '/' : location.pathname) =>
+  `${pathname.replace(/\/?(tv\/?)?$/, '').replace(/\/$/, '')}/`;
+
+/** Erzeugt den Link für den Fernseher (…/tv); das Passwort wird nur bei Sonderzeichen URL-kodiert (+, &, # usw.). */
+export const tvLink = (password, root = `${location.origin}${siteRoot()}`) =>
+  SAFE_PASSWORD.test(password) ? `${root}tv#${password}` : `${root}tv#pw=${encodeURIComponent(password)}`;

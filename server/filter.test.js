@@ -12,14 +12,14 @@ test('Filter: Stichwörter und Standard', () => {
 
 test('Filter: ODER, ohne Beachtung der Groß-/Kleinschreibung', () => {
   const m = makeMatcher(['BaLuBB', 'Bot']);
-  for (const n of ['BaLuBB System', 'balubb statusseite', 'Test Bot 1', 'Bot Dashboard', 'BaLuBB Bot Website']) assert.ok(m(n), n);
+  for (const n of ['BaLuBB System', 'balubb statusseite', 'Test Bot 2', 'Bot Dashboard', 'BaLuBB Bot Website']) assert.ok(m(n), n);
   for (const n of ['Diamant System', 'Zammad Notification', 'Background System', 'Social Media Automation - Backend', '', undefined]) assert.ok(!m(n), String(n));
   assert.ok(makeMatcher([])('irgendwas'), 'ohne Stichwörter wird nichts gefiltert');
 });
 
 const ok = (data) => ({ available: true, data });
 const sources = () => ({
-  servers: ok({ total: 3, running: 2, items: [{ name: 'BaLuBB System', state: 'running' }, { name: 'Diamant System', state: 'running' }, { name: 'Test Bot 1', state: 'offline' }] }),
+  servers: ok({ total: 3, running: 2, items: [{ name: 'BaLuBB System', state: 'running' }, { name: 'Diamant System', state: 'running' }, { name: 'Test Bot 2', state: 'offline' }] }),
   health: ok({ ok: true, servers: { total: 3, running: 2, items: [{ name: 'BaLuBB System', state: 'running' }, { name: 'Diamant System', state: 'running' }] } }),
   serversTop30: ok({ servers_with_data: 3, items: [{ rank: 1, name: 'Community' }, { rank: 2, name: 'BaLuBB Treff' }, { rank: 3, name: 'Bot Club' }] }),
   automations: ok({ total: 3, active: 2, runs_today: 30, errors_today: 5, incomplete: false, items: [
@@ -32,7 +32,7 @@ const sources = () => ({
 test('Filter: Dienste, Top-Server und Abläufe nach Namen, Summen werden neu berechnet', () => {
   const s0 = sources();
   const s = applyNameFilter(s0, ['BaLuBB', 'Bot']);
-  assert.deepEqual(s.servers.data.items.map((x) => x.name), ['BaLuBB System', 'Test Bot 1']);
+  assert.deepEqual(s.servers.data.items.map((x) => x.name), ['BaLuBB System', 'Test Bot 2']);
   assert.deepEqual([s.servers.data.total, s.servers.data.running], [2, 1]);
   assert.deepEqual(s.health.data.servers.items.map((x) => x.name), ['BaLuBB System']);
   assert.deepEqual(s.serversTop30.data.items.map((x) => [x.rank, x.name]), [[1, 'BaLuBB Treff'], [2, 'Bot Club']]);
@@ -49,13 +49,21 @@ test('Filter: Dienste, Top-Server und Abläufe nach Namen, Summen werden neu ber
 
 test('Filter: ohne Stichwörter und bei nicht verfügbaren Quellen', () => {
   const s = sources();
-  assert.equal(applyNameFilter(s, []), s);
+  assert.deepEqual(applyNameFilter(s, []).servers.data.items.length, 3, 'ohne Stichwörter bleibt nur die Ausschlussliste');
   const out = applyNameFilter({ servers: { available: false, error: 'HTTP 500' } }, ['Bot']);
   assert.deepEqual(out.servers, { available: false, error: 'HTTP 500' });
 });
 
 test('Filter: Verlauf behält nur passende Spalten', () => {
   const h = { names: ['BaLuBB System', 'Diamant', 'Test Bot 1'], points: [[1, 'rro'], [2, 'ror'], [3, 'rr']] };
-  assert.deepEqual(filterHistory(h, ['BaLuBB', 'Bot']), { names: ['BaLuBB System', 'Test Bot 1'], points: [[1, 'ro'], [2, 'rr'], [3, 'r-']] });
-  assert.equal(filterHistory(h, []), h);
+  assert.deepEqual(filterHistory(h, ['BaLuBB', 'Bot']), { names: ['BaLuBB System'], points: [[1, 'r'], [2, 'r'], [3, 'r']] });
+  assert.deepEqual(filterHistory(h, []).names, ['BaLuBB System', 'Diamant']);
+});
+
+test('Filter: „Test Bot 1“ wird nie angezeigt, ähnliche Namen schon', () => {
+  const m = makeMatcher(['Bot']);
+  assert.equal(m('Test Bot 1'), false);
+  assert.equal(m(' test bot 1 '), false);
+  assert.equal(m('Test Bot 10'), true);
+  assert.equal(m('Bot Club'), true);
 });

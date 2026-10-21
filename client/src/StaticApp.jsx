@@ -19,8 +19,12 @@ const store = {
 };
 const candidate = opts.pw || store.get(); // Link-Passwort gewinnt und überschreibt danach den gespeicherten Wert
 
+// Der Snapshot liegt an der Wurzel der Seite, die Skripte unter assets/: so findet ihn auch die Seite /tv/
+const SNAPSHOT_PATH = '../snapshot.enc.json';
+const snapshotUrl = () => { try { return new URL(SNAPSHOT_PATH, import.meta.url).href; } catch { return './snapshot.enc.json'; } };
+
 async function load(password) {
-  const res = await fetch(`./snapshot.enc.json?t=${Date.now()}`, { cache: 'no-store' });
+  const res = await fetch(`${snapshotUrl()}?t=${Date.now()}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Noch kein Snapshot veröffentlicht');
   try {
     return await decryptJson(await res.json(), password);
