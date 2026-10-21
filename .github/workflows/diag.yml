@@ -1,5 +1,9 @@
 name: Diagnose API-Formate
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/peaceful-pasteur-opbga3]
+    paths: [scripts/diag-cloudflare.mjs, .github/workflows/diag.yml]
 jobs:
   diag:
     runs-on: ubuntu-latest
