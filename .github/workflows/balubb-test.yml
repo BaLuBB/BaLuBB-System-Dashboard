@@ -1,0 +1,7 @@
+name: BaLuBB Test
+on: workflow_dispatch
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS -H "Authorization: Bearer ${{ secrets.BALUBB_API_KEY }}" https://bot.balubb.de/api/ext/v1/health
