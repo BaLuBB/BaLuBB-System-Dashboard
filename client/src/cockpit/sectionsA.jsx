@@ -87,8 +87,8 @@ export function StatusSection({ snap, now, compact = false }) {
                   {s.cpu_percent != null ? (
                     <div className="vals">
                       <Slim label="CPU" value={s.cpu_percent} />
-                      <Slim label="Speicher" value={memPct} text={memPct == null ? (s.memory ? bytesText(s.memory.used_bytes) : undefined) : `${Math.round(memPct)} %`} sub={memPct != null && s.memory ? bytesText(s.memory.used_bytes) : undefined} />
-                      <Slim label="Platte" value={diskPct} text={diskPct == null ? (s.disk ? bytesText(s.disk.used_bytes) : undefined) : `${Math.round(diskPct)} %`} sub={diskPct != null && s.disk ? bytesText(s.disk.used_bytes) : undefined} />
+                      <Slim label="Speicher" value={memPct} text={memPct == null ? '–' : `${Math.round(memPct)} %`} sub={s.memory ? bytesText(s.memory.used_bytes) : undefined} />
+                      <Slim label="Platte" value={diskPct} text={diskPct == null ? '–' : `${Math.round(diskPct)} %`} sub={s.disk ? bytesText(s.disk.used_bytes) : undefined} />
                     </div>
                   ) : <div className="up">keine Messwerte</div>}
                 </div>
@@ -121,6 +121,7 @@ export function MaintenanceBars({ snap, now }) {
 /* ---------- Gesamtlage ---------- */
 export function OverviewSection({ snap, range }) {
   const g = source(snap, 'statsGlobal');
+  if (g.hidden) return null;
   return (
     <Section id="lage" title="Gesamtlage" sub={`alle Server, letzte ${range} Tage`}>
       {!g.available ? <Card><Unavailable what="Statistik" /></Card> : (() => {

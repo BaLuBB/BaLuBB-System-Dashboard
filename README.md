@@ -74,13 +74,30 @@ keine Nutzernamen, IDs oder Nachrichten.
 
 ### Namensfilter
 
-Angezeigt werden nur Dienste, Abläufe und Top-Server, deren **Name „BaLuBB“ oder „Bot“ enthält** (ohne Beachtung der
+Angezeigt werden nur Dienste, Abläufe, Top-Server und die Listen unter „Zu erledigen“ (Aktivierungen, Feedback, Custom-Bot-Anfragen), deren **Name „BaLuBB“ oder „Bot“ enthält** (ohne Beachtung der
 Groß-/Kleinschreibung, als Teilwort: „Botschaft“ würde ebenfalls passen). Der Filter wirkt schon beim Erzeugen des Snapshots, die
 anderen Namen werden also gar nicht erst veröffentlicht (auch nicht verschlüsselt). Summen über alle Server (Gesamtlage,
 Tickets, Bewerbungen, Moderation, Dashboard-Aktivität, Cloudflare) lassen sich nicht nach Namen aufteilen und bleiben unverändert;
 die Ablauf-Zahlen „Läufe/Fehler“ der API zählen alle Abläufe und sind entsprechend gekennzeichnet. Ändern: *Settings → Secrets and
 variables → Actions → Variables →* `NAME_FILTER` (kommagetrennt, z. B. `BaLuBB,Bot,Status`; `off` schaltet den Filter ab).
 Fest ausgeblendet ist außerdem der Server **„Test Bot 1“** (exakter Name, `DEFAULT_EXCLUDE` in `client/src/cockpit/filter.js`).
+
+### Zuverlässige Aktualisierung (Cloudflare-Worker)
+
+GitHubs eigener Zeitplan (`schedule`) startet bei diesem Repository nicht zuverlässig, die Daten werden dann nur bei einem Merge
+neu geholt. Deshalb startet ein kleiner Cloudflare-Worker (`cloudflare-worker/`) den Workflow **alle 2 Minuten**. Einmalig einrichten:
+
+1. **GitHub-Token anlegen:** GitHub → *Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*.
+   Name `dashboard-trigger`, Ablauf nach Wunsch (z. B. 1 Jahr), *Repository access → Only select repositories →* `BaLuBB-System-Dashboard`,
+   *Permissions → Repository permissions → **Actions: Read and write*** (sonst nichts). Token kopieren.
+2. **Worker anlegen:** Cloudflare → *Workers & Pages → Create → Create Worker*, Name `balubb-dashboard-trigger`, *Deploy*, dann *Edit code*,
+   den gesamten Inhalt von `cloudflare-worker/worker.js` einfügen, *Deploy*.
+3. **Geheimnis setzen:** Worker → *Settings → Variables and Secrets → Add →* Typ **Secret**, Name `GH_TOKEN`, Wert = der Token aus Schritt 1.
+4. **Zeitplan:** Worker → *Settings → Trigger Events → Add → Cron Trigger →* `*/2 * * * *` (alle 2 Minuten).
+5. **Prüfen:** Nach 2–3 Minuten erscheinen unter *Actions* Läufe mit dem Auslöser *workflow_dispatch*; auf der Seite springt „Stand“ weiter.
+
+Der Worker kann ausschließlich diesen einen Workflow starten und ist von außen nicht aufrufbar. Läuft der Token ab oder wird er widerrufen, hört die
+Aktualisierung auf; die Seite zeigt dann weiter den letzten Stand.
 
 ### Aktualisierung, Verlauf, Grenzen
 

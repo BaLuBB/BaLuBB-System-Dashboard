@@ -21,12 +21,24 @@ export const makeMatcher = (keywords, exclude = DEFAULT_EXCLUDE) => {
   };
 };
 
+// Namensfeld eines Listeneintrags (wie im Cockpit, damit Filter und Anzeige dasselbe meinen)
+const entryName = (e) => {
+  if (e == null || typeof e !== 'object') return '';
+  const v = ['server', 'server_name', 'guild_name', 'guild', 'name'].map((k) => e[k]).find((x) => typeof x === 'string' && x.trim());
+  return v ?? '';
+};
+
 const sum = (arr, f) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
+
+/** Quellen mit Summen über alle Server: nach Namen nicht aufteilbar, deshalb bei aktivem Filter nicht veröffentlicht. Pro Server gibt es die Zahlen in der Top-Server-Liste. */
+export const ALL_SERVER_SOURCES = ['statsGlobal', 'tickets', 'applications', 'moderation', 'dashboardActivity'];
+export const HIDDEN_NOTE = 'wegen Namensfilter nicht angezeigt';
 
 /** Filtert die Quellen nach Namen und berechnet davon abhängige Summen neu. Summen über alle (z. B. Gesamtstatistik) bleiben. */
 export function applyNameFilter(sources, keywords) {
   const match = makeMatcher(keywords);
   const out = { ...sources };
+  if (keywords.length) for (const k of ALL_SERVER_SOURCES) if (out[k]) out[k] = { available: false, hidden: true, error: HIDDEN_NOTE };
   const edit = (key, fn) => { const s = out[key]; if (s?.available) out[key] = { ...s, data: fn(structuredClone(s.data)) }; };
   const serverTotals = (items) => ({ total: items.length, running: items.filter((x) => x.state === 'running').length });
 
@@ -41,6 +53,11 @@ export function applyNameFilter(sources, keywords) {
     return d;
   });
   edit('automationsHistory', (d) => { d.busiest = (d.busiest ?? []).filter((x) => match(x.name)); d.most_errors = (d.most_errors ?? []).filter((x) => match(x.name)); d.aggregate_all = true; return d; });
+  // „Zu erledigen“: Einträge von anderen Servern fallen weg (Namen und Texte werden nicht veröffentlicht), der Zähler folgt der Liste.
+  // Ein Eintrag ohne erkennbaren Servernamen wird nicht gezeigt.
+  for (const [key, countKey, listKey] of [['activations', 'pending_count', 'pending'], ['feedback', 'new_count', 'new'], ['customBotRequests', 'open_count', 'open']]) {
+    edit(key, (d) => { d[listKey] = (d[listKey] ?? []).filter((x) => match(entryName(x))); d[countKey] = d[listKey].length; return d; });
+  }
   edit('overview', (d) => {
     const sv = out.servers?.available ? out.servers.data : null;
     if (sv && d.servers) d.servers = { total: sv.total, running: sv.running };

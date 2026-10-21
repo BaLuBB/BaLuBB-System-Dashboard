@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseKeywords, makeMatcher, applyNameFilter, filterHistory, DEFAULT_KEYWORDS } from '../client/src/cockpit/filter.js';
+import { parseKeywords, makeMatcher, applyNameFilter, filterHistory, DEFAULT_KEYWORDS, ALL_SERVER_SOURCES } from '../client/src/cockpit/filter.js';
 
 test('Filter: Stichwörter und Standard', () => {
   assert.deepEqual(parseKeywords(''), DEFAULT_KEYWORDS);
@@ -26,7 +26,11 @@ const sources = () => ({
     { name: 'Bot Backup', active: true, runs_today: 10, errors_today: 1 }, { name: 'Newsletter', active: true, runs_today: 20, errors_today: 4 }, { name: 'BaLuBB Status', active: false, runs_today: 0, errors_today: 0 }] }),
   automationsHistory: ok({ runs: 100, errors: 5, busiest: [{ name: 'Newsletter', runs: 50 }, { name: 'Bot Backup', runs: 20 }], most_errors: [{ name: 'Newsletter', errors: 4 }] }),
   overview: ok({ servers: { total: 3, running: 2 }, automations: { total: 3, active: 2, runs_today: 30, errors_today: 5 } }),
+  activations: ok({ total: 5, pending_count: 3, pending: [{ server: 'Neuer Clan', text: 'a' }, { server: 'BaLuBB Treff', text: 'b' }, { name: 'Bot Zentrale', text: 'c' }] }),
+  feedback: ok({ total: 8, new_count: 3, new: [{ server: 'Test Bot 1', text: 'x' }, { server_name: 'Bot Club', text: 'y' }, { text: 'ohne Servernamen' }] }),
+  customBotRequests: ok({ total: 2, open_count: 1, open: [{ guild_name: 'Kochfreunde' }] }),
   tickets: ok({ total: 9 }),
+  applications: ok({ total: 4 }), moderation: ok({ totals: {} }), statsGlobal: ok({ daily: [] }), dashboardActivity: ok({ daily: [] }),
 });
 
 test('Filter: Dienste, Top-Server und Abläufe nach Namen, Summen werden neu berechnet', () => {
@@ -43,7 +47,7 @@ test('Filter: Dienste, Top-Server und Abläufe nach Namen, Summen werden neu ber
   assert.equal(s.automationsHistory.data.aggregate_all, true);
   assert.deepEqual(s.overview.data.servers, { total: 2, running: 1 });
   assert.equal(s.overview.data.automations.errors_today, 1);
-  assert.equal(s.tickets.data.total, 9, 'Summen über alle bleiben');
+  for (const k of ALL_SERVER_SOURCES) assert.deepEqual([s[k].available, s[k].hidden], [false, true], `${k}: Summen über alle Server werden bei aktivem Filter nicht veröffentlicht`);
   assert.equal(s0.servers.data.items.length, 3, 'Original bleibt unverändert');
 });
 
@@ -66,4 +70,21 @@ test('Filter: „Test Bot 1“ wird nie angezeigt, ähnliche Namen schon', () =>
   assert.equal(m(' test bot 1 '), false);
   assert.equal(m('Test Bot 10'), true);
   assert.equal(m('Bot Club'), true);
+});
+
+test('Filter: Zu-erledigen-Listen zeigen nur passende Server, Zähler folgen, Test Bot 1 nie', () => {
+  const s = applyNameFilter(sources(), ['BaLuBB', 'Bot']);
+  assert.deepEqual(s.activations.data.pending.map((x) => x.text), ['b', 'c']);
+  assert.equal(s.activations.data.pending_count, 2);
+  assert.deepEqual(s.feedback.data.new.map((x) => x.text), ['y'], 'Test Bot 1 und Eintrag ohne Namen fallen weg');
+  assert.equal(s.feedback.data.new_count, 1);
+  assert.deepEqual([s.customBotRequests.data.open.length, s.customBotRequests.data.open_count], [0, 0]);
+  assert.equal(s.activations.data.total, 5, 'Gesamtzahlen bleiben');
+  const off = applyNameFilter(sources(), []);
+  assert.deepEqual(off.feedback.data.new.map((x) => x.text), ['y', 'ohne Servernamen'].filter((t) => t !== 'x'), 'ohne Stichwörter nur die Ausschlussliste');
+});
+
+test('Filter: ohne Stichwörter bleiben die Gesamtstatistiken sichtbar', () => {
+  const s = applyNameFilter(sources(), []);
+  for (const k of ALL_SERVER_SOURCES) assert.equal(s[k].available, true, k);
 });

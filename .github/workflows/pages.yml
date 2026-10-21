@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/5 * * * *' # Reserve; zuverlässig startet der Cloudflare-Worker (cloudflare-worker/)
 
 permissions:
   contents: read
@@ -36,7 +36,7 @@ jobs:
           BALUBB_API_KEY: ${{ secrets.BALUBB_API_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
-          SNAPSHOT_INTERVAL_MIN: 5
+          SNAPSHOT_INTERVAL_MIN: 2
           NAME_FILTER: ${{ vars.NAME_FILTER }}
         run: npm run build:pages
       - uses: actions/configure-pages@v5
