@@ -43,3 +43,35 @@ export const Table = ({ head, rows }) => (
     </table>
   </div>
 );
+
+export const Kpi = ({ label, value, sub, tone }) => (
+  <div className={`kpi${tone ? ` ${tone}` : ''}`}>
+    <div className="kpi-label">{label}</div>
+    <div className="kpi-value">{value}</div>
+    {sub && <div className="kpi-sub">{sub}</div>}
+  </div>
+);
+
+/** Einfache Balken (z. B. Anfragen pro Stunde/Tag); title liefert den Tooltip. */
+export const Bars = ({ data, color = 'var(--accent)', height = 70 }) => {
+  const max = Math.max(1, ...data.map((d) => d.value));
+  const w = 100 / Math.max(data.length, 1);
+  return (
+    <svg viewBox={`0 0 100 ${height}`} preserveAspectRatio="none" className="bars" style={{ height }} role="img">
+      {data.map((d, i) => (
+        <rect key={i} x={i * w + w * 0.12} width={w * 0.76} y={height - (d.value / max) * height} height={(d.value / max) * height} fill={color} rx="0.4">
+          <title>{d.label}</title>
+        </rect>
+      ))}
+    </svg>
+  );
+};
+
+/** Farbstreifen: ein Feld pro Zeitabschnitt, Farbe nach Anteil „läuft“ (ratio 0–1, null = keine Daten). */
+export const Strip = ({ cells }) => (
+  <div className="strip" aria-hidden="true">
+    {cells.map((c, i) => (
+      <span key={i} title={c.title} className={c.ratio == null ? 'none' : c.ratio >= 0.999 ? 'up' : c.ratio <= 0.001 ? 'down' : 'part'} />
+    ))}
+  </div>
+);

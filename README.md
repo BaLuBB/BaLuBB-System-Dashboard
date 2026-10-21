@@ -78,21 +78,43 @@ CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ZONE_ID=... npm start
 
 URL: https://balubb.github.io/BaLuBB-System-Dashboard/
 
-Ein Workflow (`.github/workflows/pages.yml`, alle 15 min und bei Push auf `main`) holt den BaLuBB-Status
-und die Cloudflare-Analytics, **verschlüsselt** sie mit `DASHBOARD_PASSWORD` (PBKDF2 + AES-256-GCM) und
-veröffentlicht nur den verschlüsselten Block. Die Seite fragt nach dem Passwort und entschlüsselt im Browser.
-Ohne Passwort wird nichts veröffentlicht (der Build bricht ab).
+Ein Workflow (`.github/workflows/pages.yml`, alle 5 Minuten, bei Push auf `main` und manuell) holt den
+BaLuBB-Status und die Cloudflare-Analytics, **verschlüsselt** sie mit `DASHBOARD_PASSWORD`
+(PBKDF2 + AES-256-GCM) und veröffentlicht nur den verschlüsselten Block. Die Seite fragt nach dem Passwort
+und entschlüsselt im Browser. Ohne Passwort wird nichts veröffentlicht (der Build bricht ab).
+
+**Die Seite zeigt:** Warn-Banner (offline, veraltet, Wartung, 5xx), KPI-Leiste, jeden BaLuBB-Server mit
+24-Stunden-Streifen und Verfügbarkeit (24 h / 7 Tage), Verlauf der laufenden Server, Wartungen, Anfragen
+(7 Tage und 24 Stunden), Antwortcodes, Länder, Top-Seiten, Browser, Sicherheit (Aktionen/Quellen/Bedrohungen),
+Web-Analytics und die ungekürzten Rohdaten der BaLuBB-API.
+
+**Aktualisierung:** GitHub führt geplante Workflows frühestens alle 5 Minuten aus und verzögert sie oft um
+einige Minuten. Die Seite prüft alle 2 Minuten, ob ein neuer Snapshot da ist. Daten sind daher meist
+5–10 Minuten alt. Wirklich alle 2 Minuten ginge nur mit einem eigenen Server (siehe unten).
+
+**Verlauf:** Der Workflow lädt den zuletzt veröffentlichten, verschlüsselten Snapshot, entschlüsselt ihn,
+hängt den neuen Messpunkt an (7 Tage Aufbewahrung) und verschlüsselt neu. Es ist kein zusätzlicher Speicher
+nötig. Wird `DASHBOARD_PASSWORD` geändert, startet der Verlauf neu.
 
 Einrichtung:
 1. *Settings → Pages → Build and deployment → Source:* **GitHub Actions**.
 2. *Settings → Secrets and variables → Actions → New repository secret:*
    `DASHBOARD_PASSWORD` (mindestens 12 Zeichen, besser eine lange Passphrase), `BALUBB_API_KEY`,
-   `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID`.
+   `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID`. Die Account-ID für Web-Analytics wird automatisch aus der Zone gelesen.
 3. *Actions → Status-Seite (GitHub Pages) → Run workflow*.
 
-Hinweise: Das Repo ist öffentlich, der verschlüsselte Block ist es auch. Die Sicherheit hängt daher
-an der Passwortstärke. Die Seite zeigt nur BaLuBB-Status und Cloudflare, nicht CPU/RAM eines Rechners
-(das braucht den laufenden Node-Server).
+**Web-Analytics (Besucher):** In Cloudflare unter *Web-Analytics* die Website aktivieren. Bis dahin
+zeigt die Kachel einen Hinweis.
+
+**Sicherheit:** Das Repo ist öffentlich, der verschlüsselte Block auch. Die Sicherheit hängt an der
+Passwortstärke. **Logs von Workflow-Läufen in öffentlichen Repos sind öffentlich.** Die Workflows geben deshalb
+keine Daten aus, nur Zustände (`ok`/Fehler) und Feldnamen.
+
+**Cloudflare Free-Plan:** Firewall-Ereignisse (`firewallEventsAdaptive`) sind nicht verfügbar. Die Sicherheitskachel
+nutzt stattdessen `securityAction`/`securitySource` der Adaptive-Gruppen und die Bedrohungsarten der Tageswerte.
+
+Die Seite zeigt nur BaLuBB-Status und Cloudflare, nicht CPU/RAM eines Rechners (das braucht den laufenden
+Node-Server, siehe oben).
 
 Das Dashboard zeigt immer das System, auf dem der Server läuft. Für mehrere Rechner
 den Server auf jedem Rechner starten.

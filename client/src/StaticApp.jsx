@@ -1,10 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { BalubbView } from './BalubbCard.jsx';
-import { CloudflareView } from './CloudflareCard.jsx';
+import Overview from './Overview.jsx';
 import { decryptJson } from './crypto.js';
 
-const REFRESH_MS = 5 * 60 * 1000;
-const fmt = (iso) => new Date(iso).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'medium' });
+const REFRESH_MS = 2 * 60 * 1000;
 
 async function load(password) {
   const res = await fetch(`./snapshot.enc.json?t=${Date.now()}`, { cache: 'no-store' });
@@ -58,22 +56,5 @@ export default function StaticApp() {
     );
   }
 
-  return (
-    <main>
-      <header className="top">
-        <div>
-          <h1>BaLuBB Status</h1>
-          <p className="muted">Stand: {fmt(snap.generatedAt)} · wird alle paar Minuten aktualisiert</p>
-        </div>
-        <div className="right">
-          {error && <div className="err">{error}</div>}
-          <button onClick={() => { setSnap(null); setPassword(''); setInput(''); }}>Abmelden</button>
-        </div>
-      </header>
-      <div className="grid">
-        <BalubbView b={snap.balubb} />
-        <CloudflareView c={snap.cloudflare} />
-      </div>
-    </main>
-  );
+  return <Overview snap={snap} error={error} onLogout={() => { setSnap(null); setPassword(''); setInput(''); }} />;
 }
