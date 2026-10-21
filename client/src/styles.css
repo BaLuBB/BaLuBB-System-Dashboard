@@ -35,3 +35,7 @@ th { color: var(--muted); font-weight: 500; }
 .maint { margin-top: 12px; padding: 10px; border-left: 3px solid var(--warn); background: var(--bg); border-radius: 4px; }
 .maint p { margin: 4px 0 0; }
 .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 8px; }
+.login { width: min(380px, 92vw); display: grid; gap: 10px; }
+input, button { font: inherit; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
+button { cursor: pointer; background: var(--accent); color: #fff; border-color: var(--accent); }
+button:disabled { opacity: .6; cursor: default; }

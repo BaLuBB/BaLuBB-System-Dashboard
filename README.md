@@ -74,5 +74,25 @@ CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ZONE_ID=... npm start
 - Die Antwort wird 5 min gecacht (`CLOUDFLARE_TTL_MS`), Zeitraum über `CLOUDFLARE_DAYS` (Standard 7).
   Wie viele Tage Cloudflare liefert, hängt vom Plan ab.
 
+## Passwortgeschützte Status-Seite auf GitHub Pages
+
+URL: https://balubb.github.io/BaLuBB-System-Dashboard/
+
+Ein Workflow (`.github/workflows/pages.yml`, alle 15 min und bei Push auf `main`) holt den BaLuBB-Status
+und die Cloudflare-Analytics, **verschlüsselt** sie mit `DASHBOARD_PASSWORD` (PBKDF2 + AES-256-GCM) und
+veröffentlicht nur den verschlüsselten Block. Die Seite fragt nach dem Passwort und entschlüsselt im Browser.
+Ohne Passwort wird nichts veröffentlicht (der Build bricht ab).
+
+Einrichtung:
+1. *Settings → Pages → Build and deployment → Source:* **GitHub Actions**.
+2. *Settings → Secrets and variables → Actions → New repository secret:*
+   `DASHBOARD_PASSWORD` (mindestens 12 Zeichen, besser eine lange Passphrase), `BALUBB_API_KEY`,
+   `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ZONE_ID`.
+3. *Actions → Status-Seite (GitHub Pages) → Run workflow*.
+
+Hinweise: Das Repo ist öffentlich, der verschlüsselte Block ist es auch. Die Sicherheit hängt daher
+an der Passwortstärke. Die Seite zeigt nur BaLuBB-Status und Cloudflare, nicht CPU/RAM eines Rechners
+(das braucht den laufenden Node-Server).
+
 Das Dashboard zeigt immer das System, auf dem der Server läuft. Für mehrere Rechner
 den Server auf jedem Rechner starten.
