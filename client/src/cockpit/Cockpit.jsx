@@ -3,6 +3,7 @@ import { RANGES, relTime } from './data.js';
 import { AutomationsSection, ActivitySection, CloudflareSection, Footer, ReleasesSection, SupportSection, SystemSection } from './sectionsB.jsx';
 import { MaintenanceBars, OverviewSection, StatusSection, TodoSection, TopServersSection } from './sectionsA.jsx';
 import { Skeleton } from './ui.jsx';
+import { siteRoot } from '../tvmode.js';
 import './cockpit.css';
 
 const safe = {
@@ -56,7 +57,7 @@ export default function Cockpit({ snap, onLogout, onTvLink, error }) {
             </div>
             <button type="button" className="cp-btn" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={`Darstellung wechseln, aktuell ${theme === 'dark' ? 'dunkel' : 'hell'}`}>{theme === 'dark' ? 'Hell' : 'Dunkel'}</button>
             {onTvLink && <button type="button" className="cp-btn" onClick={onTvLink} title="Link für die Diashow (enthält das Passwort)">Diashow-Link</button>}
-            <button type="button" className="cp-btn" onClick={() => { location.hash = ''; location.reload(); }}>Diashow</button>
+            <button type="button" className="cp-btn" onClick={() => { location.href = `${siteRoot()}tv`; }}>Diashow</button>
             <button type="button" className="cp-btn" onClick={onLogout}>Abmelden</button>
           </div>
         </header>
