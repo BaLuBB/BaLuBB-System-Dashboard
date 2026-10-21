@@ -3,7 +3,7 @@ import { computeAlerts } from './alerts.js';
 import { AgeNote, Banner, HistoryCard, KpiBar, Maintenance, RawData, SecurityCard, ServerBoard, TrafficCard, WebCard } from './sections.jsx';
 
 /** Gemeinsame Übersicht für die GitHub-Pages-Seite. */
-export default function Overview({ snap, onLogout, error }) {
+export default function Overview({ snap, onLogout, onTvLink, error }) {
   const [, tick] = useState(0);
   useEffect(() => { const t = setInterval(() => tick((n) => n + 1), 30_000); return () => clearInterval(t); }, []);
   const alerts = computeAlerts(snap);
@@ -18,6 +18,7 @@ export default function Overview({ snap, onLogout, error }) {
         <div className="right">
           <span className={`pill ${worst ?? 'ok'}`}>{worst === 'crit' ? 'Störung' : worst === 'warn' ? 'Auffälligkeiten' : 'Alles ok'}</span>
           {error && <div className="err small">{error}</div>}
+          {onTvLink && <button className="ghost" onClick={onTvLink} title="Link für den Fernseher (enthält das Passwort)">TV-Link</button>}
           <button className="ghost" onClick={onLogout}>Abmelden</button>
         </div>
       </header>

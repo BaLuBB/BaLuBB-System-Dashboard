@@ -1,6 +1,6 @@
 import React from 'react';
 import { Bars, Card, Kpi, Spark, Strip, Table } from './components.jsx';
-import { ago, bytes, dt, duration, num, pct } from './format.js';
+import { ago, bytes, dt, durationShort, num, pct } from './format.js';
 import { runningSeries, uptimeByServer } from './history.js';
 
 const ICON = { crit: '⛔', warn: '⚠️', info: 'ℹ️' };
@@ -28,7 +28,7 @@ export function KpiBar({ snap }) {
       {b && <Kpi label="Server" value={`${b.servers.running} / ${b.servers.total}`} sub={offline ? `${offline} nicht aktiv` : 'alle laufen'} tone={offline ? 'warn' : 'ok'} />}
       {b && <Kpi label="Verfügbarkeit 24 h" value={pctOr(avg24)} sub="Ø aller Server" />}
       {b && <Kpi label="Release" value={b.dashboard.release.version} sub={`seit ${dt(b.dashboard.release.date)}`.replace(/, .*/, '')} />}
-      {b && <Kpi label="Dashboard läuft seit" value={duration(b.dashboard.uptime_seconds)} sub={b.dashboard.ok ? 'ok' : 'Problem'} tone={b.dashboard.ok ? undefined : 'crit'} />}
+      {b && <Kpi label="Dashboard läuft seit" value={durationShort(b.dashboard.uptime_seconds)} sub={b.dashboard.ok ? 'ok' : 'Problem'} tone={b.dashboard.ok ? undefined : 'crit'} />}
       {c && <Kpi label={`Anfragen (${c.days.length} Tage)`} value={num(c.totals.requests)} sub={`${bytes(c.totals.bytes)} Daten`} />}
       {c && <Kpi label="Cache-Quote" value={pct(c.totals.cacheRate)} />}
       {c && <Kpi label="5xx-Fehler" value={num(e5)} tone={e5 ? 'warn' : undefined} sub={c.totals.requests ? pct((e5 / c.totals.requests) * 100) : undefined} />}
@@ -79,13 +79,13 @@ export function ServerBoard({ snap }) {
               <div className="server-foot muted">
                 <span>24 h: <b>{pctOr(u24[s.name]?.uptime)}</b></span>
                 <span>7 Tage: <b>{pctOr(u7[s.name]?.uptime)}</b></span>
-                <span>{u7[s.name]?.samples ?? 0} Messpunkte</span>
+                <span className="tv-hide">{u7[s.name]?.samples ?? 0} Messpunkte</span>
               </div>
             </div>
           );
         })}
       </div>
-      <p className="muted small">Der Streifen zeigt die letzten 24 Stunden (je ca. 30 Minuten): grün = online, gelb = teils, rot = offline, grau = keine Daten. Der Verlauf sammelt sich ab dem ersten Lauf auf.</p>
+      <p className="muted small note">Der Streifen zeigt die letzten 24 Stunden (je ca. 30 Minuten): grün = online, gelb = teils, rot = offline, grau = keine Daten. Der Verlauf sammelt sich ab dem ersten Lauf auf.</p>
     </Card>
   );
 }
@@ -157,9 +157,9 @@ export function SecurityCard({ snap }) {
     <Card title="Sicherheit" right={`${num(d.totals.threats)} Bedrohungen in ${d.days.length} Tagen`}>
       {s ? (
         <>
-          <p className="muted small">Letzte 24 Stunden: Was Cloudflare mit Anfragen gemacht hat</p>
+          <p className="muted small note">Letzte 24 Stunden: Was Cloudflare mit Anfragen gemacht hat</p>
           <Table head={['Aktion', 'Anfragen']} rows={s.actions.map((a) => [a.action, num(a.requests)])} />
-          <Table head={['Quelle', 'Anfragen']} rows={s.sources.map((a) => [a.source, num(a.requests)])} />
+          <div className="tv-hide"><Table head={['Quelle', 'Anfragen']} rows={s.sources.map((a) => [a.source, num(a.requests)])} /></div>
         </>
       ) : <p className="muted">Sicherheitsdetails nicht verfügbar{d.partErrors?.security ? `: ${d.partErrors.security}` : '.'}</p>}
       {d.threatTypes.length > 0 && <Table head={['Bedrohungsart', 'Anfragen']} rows={d.threatTypes.map((t) => [t.type, num(t.requests)])} />}
