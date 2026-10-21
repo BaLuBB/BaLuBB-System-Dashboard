@@ -342,3 +342,10 @@ body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger 
 @keyframes cp-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes cp-ring { from { opacity: 0; transform: rotate(-60deg) scale(.9); } to { opacity: 1; transform: none; } }
 @keyframes cp-pop { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
+
+/* Netzwerk unter dem Status, Zuletzt gelaufen */
+.cp-srv .up.net { font-family: var(--font-mono); font-size: .8rem; white-space: nowrap; } .cp-tv .cp-srv .up.net { display: block; }
+.cp-lastruns { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: .95rem; }
+.cp-lastruns li { display: flex; justify-content: space-between; gap: 12px; min-width: 0; } .cp-lastruns li > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cp-tv .cp-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.cp-tv .cp-hbar .label { white-space: normal; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.2; }

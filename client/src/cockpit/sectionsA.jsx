@@ -9,6 +9,9 @@ import { filterLabel } from './filter.js';
 const filtered = (snap) => (snap.filter?.keywords?.length ? filterLabel(snap.filter.keywords) : '');
 
 /* ---------- Zu erledigen ---------- */
+const STATUS_LABEL = { active: 'aktiv', deactivated: 'deaktiviert', pending: 'offen', accepted: 'angenommen', rejected: 'abgelehnt', erledigt: 'erledigt', new: 'neu', open: 'offen', feedback: 'Feedback' };
+const distribution = (o) => Object.entries(o ?? {}).filter(([, v]) => Number.isFinite(Number(v))).map(([k, v]) => `${STATUS_LABEL[k] ?? k} ${num(v)}`).join(' · ');
+
 function TodoBlock({ title, src, countKey, listKey, now }) {
   if (!src.available) return <Card title={title}><Unavailable /></Card>;
   const d = src.data, count = Number(d[countKey]) || 0, items = (d[listKey] ?? []).slice(0, 5);
@@ -17,6 +20,7 @@ function TodoBlock({ title, src, countKey, listKey, now }) {
       {count === 0
         ? <p className="cp-hero"><span className="cp-big muted">0</span><span className="cp-unit">✓ Nichts offen</span></p>
         : <p className="cp-hero"><span className="cp-big">{num(count)}</span><span className="cp-unit">offen</span></p>}
+      {(d.by_status || d.by_kind || d.total != null) && <p className="muted small">{[d.total != null && `${num(d.total)} gesamt`, distribution(d.by_status), distribution(d.by_kind)].filter(Boolean).join(' · ')}</p>}
       {items.length > 0 && (
         <ul>
           {items.map((raw, i) => {
@@ -83,7 +87,7 @@ export function StatusSection({ snap, now, compact = false }) {
               return (
                 <div className="cp-srv" key={s.name}>
                   <div className="name"><b>{s.name}</b>{s.suspended && <Pill state="warn">gesperrt</Pill>}</div>
-                  <div><Pill state={state}>{word}</Pill>{s.uptime_seconds != null && s.state === 'running' && <div className="up since">seit {durationText(s.uptime_seconds)}</div>}{u != null && <div className="up">24 h: {pctText(u, 0)}</div>}</div>
+                  <div><Pill state={state}>{word}</Pill>{s.uptime_seconds != null && s.state === 'running' && <div className="up since">seit {durationText(s.uptime_seconds)}</div>}{u != null && <div className="up">24 h: {pctText(u, 0)}</div>}{s.network && <div className="up net" title="Netzwerk gesamt">↓ {bytesText(s.network.rx_bytes)} · ↑ {bytesText(s.network.tx_bytes)}</div>}</div>
                   {s.cpu_percent != null ? (
                     <div className="vals">
                       <Slim label="CPU" value={s.cpu_percent} />

@@ -79,13 +79,23 @@ test('Filter: Zu-erledigen-Listen zeigen nur passende Server, Zähler folgen, Te
   assert.deepEqual(s.feedback.data.new.map((x) => x.text), ['y'], 'Test Bot 1 und Eintrag ohne Namen fallen weg');
   assert.equal(s.feedback.data.new_count, 1);
   assert.deepEqual([s.customBotRequests.data.open.length, s.customBotRequests.data.open_count], [0, 0]);
-  assert.equal(s.activations.data.total, 5, 'Gesamtzahlen bleiben');
+  assert.equal(s.activations.data.total, undefined, 'Gesamtzahlen über alle Server werden nicht veröffentlicht');
   const off = applyNameFilter(sources(), []);
   assert.deepEqual(off.feedback.data.new.map((x) => x.text), ['y', 'ohne Servernamen'].filter((t) => t !== 'x'), 'ohne Stichwörter nur die Ausschlussliste');
 });
 
+test('Filter: Summen der „Zu erledigen“-Quellen und Dashboard-Aktivität', () => {
+  const src = { ...sources(), activations: ok({ total: 5, by_status: { active: 4 }, pending_count: 1, pending: [{ server: 'Bot X' }] }), feedback: ok({ total: 9, by_kind: { a: 1 }, volume: [{ date: 'd', received: 3 }], days: 90, new_count: 0, new: [] }) };
+  const s = applyNameFilter(src, ['Bot']);
+  for (const k of ['total', 'by_status', 'by_kind', 'volume', 'days']) { assert.equal(s.activations.data[k], undefined, `activations.${k}`); assert.equal(s.feedback.data[k], undefined, `feedback.${k}`); }
+  assert.equal(s.activations.data.pending_count, 1);
+  assert.equal(s.dashboardActivity.available, true, 'Dashboard-Aktivität bleibt sichtbar (nur Summe über alle)');
+});
+
 test('Filter: ohne Stichwörter bleiben die Gesamtstatistiken sichtbar', () => {
   const s = applyNameFilter(sources(), []);
+  assert.equal(s.activations.data.total, 5, 'Summen der Zu-erledigen-Quellen bleiben ohne Filter');
+  assert.deepEqual(s.activations.data.by_status ?? null, s.activations.data.by_status ?? null);
   for (const k of ALL_SERVER_SOURCES) assert.equal(s[k].available, true, k);
 });
 

@@ -86,37 +86,12 @@ function TopTable({ snap }) {
     <Card title="Top-Server nach Nachrichten" right={`${t.withData ?? 0} Server mit Daten`}>
       {t.items.length === 0 && <p className="cp-empty">{emptyTop(snap)}</p>}
       <table className="cp-table">
-        <thead><tr><th>Server</th><th className="num">Mitglieder</th><th className="num">Beitritte</th><th className="num">Abgänge</th><th className="num">Tickets</th><th className="num">Moderation</th></tr></thead>
+        <thead><tr><th>Server</th><th className="num">Mitglieder</th><th className="num">Schreiber</th><th className="num">Beitritte</th><th className="num">Abgänge</th><th className="num">Tickets</th><th className="num">Bewerbungen</th><th className="num">Moderation</th></tr></thead>
         <tbody>{t.items.map((s, i) => (
-          <tr key={s.id ?? s.name}><td>{i + 1}. {s.name}</td><td className="num">{num(s.member_count)}</td><td className="num">{num(s.joins)}</td><td className="num">{num(s.leaves)}</td><td className="num">{num(s.tickets?.total)}</td><td className="num">{num(s.moderation?.total)}</td></tr>
+          <tr key={s.id ?? s.name}><td>{i + 1}. {s.name}</td><td className="num">{num(s.member_count)}</td><td className="num">{num(s.active_chatters)}</td><td className="num">{num(s.joins)}</td><td className="num">{num(s.leaves)}</td><td className="num">{num(s.tickets?.total)}</td><td className="num">{num(s.applications?.total)}</td><td className="num">{num(s.moderation?.total)}</td></tr>
         ))}</tbody>
       </table>
     </Card>
   );
 }
 
-/** Kategorie „Support“ bei aktivem Namensfilter: Tickets, Bewerbungen und Moderation je passendem Server (die API liefert Tagesverläufe nur über alle Server). */
-export function SupportTopSlide({ snap }) {
-  const t = topServers(snap, 30, 'messages', 10);
-  const items = t.available ? t.items : [];
-  const sum = (f) => items.reduce((a, x) => a + (Number(f(x)) || 0), 0);
-  const rows = (f) => items.map((s) => ({ label: s.name, value: Number(f(s)) || 0 })).filter((r) => r.value > 0).sort((a, z) => z.value - a.value);
-  return (
-    <Section id="support" title="Tickets, Bewerbungen, Moderation" sub="je Server mit passendem Namen, letzte 30 Tage">
-      <div className="cp-grid cols-3">
-        <Card title="Tickets">
-          <p className="cp-hero"><span className="cp-big">{num(sum((s) => s.tickets?.open))}</span><span className="cp-unit">offen · {num(sum((s) => s.tickets?.total))} gesamt · {num(sum((s) => s.tickets?.created))} neu</span></p>
-          <HBars rows={rows((s) => s.tickets?.total)} empty="Keine Tickets." />
-        </Card>
-        <Card title="Bewerbungen">
-          <p className="cp-hero"><span className="cp-big">{num(sum((s) => s.applications?.submitted))}</span><span className="cp-unit">neu · {num(sum((s) => s.applications?.total))} gesamt</span></p>
-          <HBars rows={rows((s) => s.applications?.total)} empty="Keine Bewerbungen." />
-        </Card>
-        <Card title="Moderation">
-          <p className="cp-hero"><span className="cp-big">{num(sum((s) => s.moderation?.total))}</span><span className="cp-unit">Aktionen</span></p>
-          <HBars rows={rows((s) => s.moderation?.total)} empty="Keine Aktionen." />
-        </Card>
-      </div>
-    </Section>
-  );
-}

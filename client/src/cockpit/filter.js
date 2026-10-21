@@ -31,7 +31,7 @@ const entryName = (e) => {
 const sum = (arr, f) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
 
 /** Quellen mit Summen über alle Server: nach Namen nicht aufteilbar, deshalb bei aktivem Filter nicht veröffentlicht. Pro Server gibt es die Zahlen in der Top-Server-Liste. */
-export const ALL_SERVER_SOURCES = ['statsGlobal', 'tickets', 'applications', 'moderation', 'dashboardActivity'];
+export const ALL_SERVER_SOURCES = ['statsGlobal', 'tickets', 'applications', 'moderation'];
 
 /** Gesamtlage aus den Tagesverläufen der passenden Server (summiert je Tag); ohne Verläufe gibt es null. */
 export function statsFromServers(topSource) {
@@ -75,7 +75,11 @@ export function applyNameFilter(sources, keywords) {
   // „Zu erledigen“: Einträge von anderen Servern fallen weg (Namen und Texte werden nicht veröffentlicht), der Zähler folgt der Liste.
   // Ein Eintrag ohne erkennbaren Servernamen wird nicht gezeigt.
   for (const [key, countKey, listKey] of [['activations', 'pending_count', 'pending'], ['feedback', 'new_count', 'new'], ['customBotRequests', 'open_count', 'open']]) {
-    edit(key, (d) => { d[listKey] = (d[listKey] ?? []).filter((x) => match(entryName(x))); d[countKey] = d[listKey].length; return d; });
+    edit(key, (d) => {
+      d[listKey] = (d[listKey] ?? []).filter((x) => match(entryName(x))); d[countKey] = d[listKey].length;
+      if (keywords.length) for (const k of ['total', 'by_status', 'by_kind', 'volume', 'days']) delete d[k]; // Summen über alle Server nicht veröffentlichen
+      return d;
+    });
   }
   edit('overview', (d) => {
     const sv = out.servers?.available ? out.servers.data : null;
