@@ -356,3 +356,12 @@ body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger 
 .cp-tv .tv-top .cp-table th { font-size: .66rem; letter-spacing: 0; }
 .cp-tv .tv-top .cp-table th:first-child, .cp-tv .tv-top .cp-table td:first-child { width: 27%; overflow: hidden; text-overflow: ellipsis; }
 .cp-tv .tv-top { min-width: 0; } .cp-tv .tv-top > * { min-width: 0; }
+
+/* Server-Seite auf dem Fernseher, übersichtlicher: je Dienst Kopfzeile (Name links, Status und Netzwerk rechts) und darunter CPU, Speicher, Platte in drei gleich breiten Spalten */
+.cp-tv .cp-srv { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name stat" "vals vals"; gap: 8px 16px; align-items: center; padding: 12px 0; }
+.cp-tv .cp-srv > .name { grid-area: name; flex-wrap: nowrap; }
+.cp-tv .cp-srv > .name b { font-size: 1.2rem; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
+.cp-tv .cp-srv > div:nth-child(2) { grid-area: stat; display: flex; align-items: center; gap: 14px; justify-content: flex-end; }
+.cp-tv .cp-srv > .vals { grid-area: vals; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
+.cp-tv .cp-srv .up.net { font-size: .85rem; }
+.cp-tv .cp-slim .row { font-size: .95rem; }
