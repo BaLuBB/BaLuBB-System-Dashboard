@@ -75,8 +75,8 @@ export function TopBarsSlide({ snap }) {
   return (
     <div className="tv-cols tv-top">
       <div className="tv-stack">
-        <Card title="Nachrichten, letzte 30 Tage"><HBars rows={rows(msg, (s) => s.messages)} empty={emptyTop(snap)} /></Card>
-        <Card title="Sprachstunden, letzte 30 Tage"><HBars rows={rows(voice, (s) => s.voice_hours)} format={(v) => `${num(v, 1)} Std.`} empty={emptyTop(snap)} /></Card>
+        <Card title="Nachrichten, letzte 30 Tage" right={msg.allServers ? 'alle Server' : undefined}><HBars rows={rows(msg, (s) => s.messages)} empty={emptyTop(snap)} /></Card>
+        <Card title="Sprachstunden, letzte 30 Tage" right={voice.allServers ? 'alle Server' : undefined}><HBars rows={rows(voice, (s) => s.voice_hours)} format={(v) => `${num(v, 1)} Std.`} empty={emptyTop(snap)} /></Card>
       </div>
       <TopTable snap={snap} />
     </div>
@@ -87,7 +87,8 @@ function TopTable({ snap }) {
   const t = topServers(snap, 30, 'messages', 8);
   if (!source(snap, 'serversTop30').available) return <Card title="Top-Server"><p className="cp-unavail">gerade nicht verfügbar</p></Card>;
   return (
-    <Card title="Top-Server nach Nachrichten" right={`${num(t.withData)} Server mit Daten`}>
+    <Card title="Top-Server nach Nachrichten" right={`${t.allServers ? 'alle Server · ' : ''}${num(t.withData)} Server mit Daten`}>
+      {t.allServers && <p className="muted small">Keiner der 10 aktivsten Server passt zum Namensfilter: gezeigt werden alle Server, wie die API sie liefert.</p>}
       {t.items.length === 0 && <p className="cp-empty">{emptyTop(snap)}</p>}
       <table className="cp-table">
         <thead><tr><th>Server</th><th className="num">Mitglieder</th><th className="num">Schreiber</th><th className="num">Beitritte</th><th className="num">Abgänge</th><th className="num">Tickets</th><th className="num">Bewerbungen</th><th className="num">Moderation</th></tr></thead>

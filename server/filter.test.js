@@ -182,3 +182,12 @@ test('Feedback: Summen bleiben bei aktivem Filter (gekennzeichnet), die Liste bl
   const s = applyNameFilter({ feedback: { available: true, data: { total: 8, volume: [{ date: '2026-01-01', received: 2 }], new_count: 2, new: [{ server: 'Fremd', text: 'x' }, { server: 'Bot Club', text: 'y' }] } } }, ['BaLuBB', 'Bot']);
   assert.deepEqual([s.feedback.data.total, s.feedback.data.allServers, s.feedback.data.new.length], [8, true, 1]);
 });
+
+test('Top-Server: passt keiner zum Filter, bleibt die echte Liste (ohne Ausschlussnamen), gekennzeichnet', () => {
+  const top = { available: true, data: { days: 30, servers_with_data: 11, items: [{ name: 'Fremd A', messages: 5 }, { name: 'Test Bot 1', messages: 9 }, { name: 'Fremd B', messages: 1 }] } };
+  const s = applyNameFilter({ serversTop30: top }, ['BaLuBB', 'Bot']);
+  assert.deepEqual(s.serversTop30.data.items.map((x) => [x.rank, x.name]), [[1, 'Fremd A'], [2, 'Fremd B']]);
+  assert.deepEqual([s.serversTop30.data.allServers, s.serversTop30.data.servers_with_data], [true, 11]);
+  const t2 = applyNameFilter({ serversTop30: { available: true, data: { items: [{ name: 'BaLuBB Treff' }, { name: 'Fremd' }] } } }, ['BaLuBB']);
+  assert.deepEqual([t2.serversTop30.data.items.length, t2.serversTop30.data.allServers], [1, undefined], 'mit Treffer wird wie bisher gefiltert');
+});
