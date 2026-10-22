@@ -30,7 +30,24 @@ const entryName = (e) => {
   return v ?? '';
 };
 
-/** Quellen mit Summen über alle Server: nach Namen nicht aufteilbar, deshalb bei aktivem Filter nicht veröffentlicht. Pro Server gibt es die Zahlen in der Top-Server-Liste. */
+const NAME_KEYS = new Set(['name', 'server', 'server_name', 'guild_name', 'guild']);
+const LIST_KEYS = new Set(['items', 'servers', 'by_server', 'top_servers', 'top']);
+/** Entfernt Namen und Listen je Server: übrig bleiben nur Summen, die sich nicht auf einen Servernamen zurückführen lassen. */
+export function stripNames(v) {
+  if (Array.isArray(v)) return v.map(stripNames);
+  if (v && typeof v === 'object') {
+    const o = {};
+    for (const [k, x] of Object.entries(v)) {
+      if (NAME_KEYS.has(k)) continue;
+      if (LIST_KEYS.has(k) && Array.isArray(x) && x.some((e) => e && typeof e === 'object')) continue;
+      o[k] = stripNames(x);
+    }
+    return o;
+  }
+  return v;
+}
+
+/** Quellen mit Summen über alle Server: nach Namen nicht aufteilbar. Bei aktivem Filter bleiben nur die Summen (ohne Namen), gekennzeichnet mit allServers; Zahlen je Server gibt es nur in der Top-Server-Liste. */
 export const ALL_SERVER_SOURCES = ['statsGlobal', 'tickets', 'applications', 'moderation'];
 export const OVERVIEW_ALL_SERVER_BLOCKS = ['tickets', 'applications', 'moderation', 'custom_bots', 'to_do'];
 export const HIDDEN_NOTE = 'wegen Namensfilter nicht angezeigt';
@@ -65,7 +82,14 @@ export function applyNameFilter(sources, keywords) {
   const match = makeMatcher(keywords);
   const out = { ...sources };
   const hide = () => ({ available: false, hidden: true, error: HIDDEN_NOTE });
-  if (keywords.length) for (const k of ALL_SERVER_SOURCES) if (out[k]) out[k] = hide();
+  // Die API ordnet Tickets, Bewerbungen und Moderation keinem Dienstnamen zu: es bleiben die echten Summen über alle Server, ohne Namen und klar gekennzeichnet
+  if (keywords.length) {
+    for (const k of ALL_SERVER_SOURCES) {
+      const raw = sources[k];
+      if (!raw) continue;
+      out[k] = k === 'statsGlobal' ? hide() : raw.available ? { available: true, data: { ...stripNames(raw.data), allServers: true } } : raw;
+    }
+  }
   const edit = (key, fn) => { const s = out[key]; if (s?.available) out[key] = { ...s, data: fn(structuredClone(s.data)) }; };
   const serverTotals = (items) => ({ total: items.length, running: items.filter((x) => x.state === 'running').length });
 
@@ -86,7 +110,8 @@ export function applyNameFilter(sources, keywords) {
     edit(key, (d) => {
       // Nur wenn die Liste da ist, folgt der Zähler ihr; fehlt sie, bleibt der Zähler unbekannt (null) statt 0
       if (Array.isArray(d[listKey])) { d[listKey] = d[listKey].filter((x) => match(entryName(x))); d[countKey] = d[listKey].length; } else { delete d[listKey]; d[countKey] = null; }
-      if (keywords.length) for (const k of ['total', 'by_status', 'by_kind', 'volume', 'days']) delete d[k]; // Summen über alle Server nicht veröffentlichen
+      // Summen über alle Server: bei Feedback bleiben sie (gekennzeichnet), sonst gibt es sie nur ohne Filter
+      if (keywords.length) { if (key === 'feedback') d.allServers = true; else for (const k of ['total', 'by_status', 'by_kind', 'volume', 'days']) delete d[k]; }
       return d;
     });
   }

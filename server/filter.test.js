@@ -47,7 +47,8 @@ test('Filter: Dienste, Top-Server und Abläufe nach Namen, Summen werden neu ber
   assert.equal(s.automationsHistory.data.aggregate_all, true);
   assert.deepEqual(s.overview.data.servers, { total: 2, running: 1 });
   assert.equal(s.overview.data.automations.errors_today, 1);
-  for (const k of ALL_SERVER_SOURCES.filter((x) => x !== 'statsGlobal')) assert.deepEqual([s[k].available, s[k].hidden], [false, true], `${k}: Summen über alle Server werden bei aktivem Filter nicht veröffentlicht`);
+  for (const k of ALL_SERVER_SOURCES.filter((x) => x !== 'statsGlobal')) assert.deepEqual([s[k].available, s[k].data.allServers], [true, true], `${k}: Summen über alle Server bleiben, klar gekennzeichnet`);
+  assert.equal(s.tickets.data.total, 9, 'echte Summe, nichts umgerechnet');
   assert.deepEqual([s.statsGlobal.available, s.statsGlobal.hidden], [false, undefined], 'Gesamtlage: ohne Verläufe je Server gibt es einen Fehlerzustand statt erfundener Zahlen');
   assert.match(s.statsGlobal.error, /Tagesverläufe/);
   assert.equal(s0.servers.data.items.length, 3, 'Original bleibt unverändert');
@@ -89,7 +90,8 @@ test('Filter: Zu-erledigen-Listen zeigen nur passende Server, Zähler folgen, Te
 test('Filter: Summen der „Zu erledigen“-Quellen und Dashboard-Aktivität', () => {
   const src = { ...sources(), activations: ok({ total: 5, by_status: { active: 4 }, pending_count: 1, pending: [{ server: 'Bot X' }] }), feedback: ok({ total: 9, by_kind: { a: 1 }, volume: [{ date: 'd', received: 3 }], days: 90, new_count: 0, new: [] }) };
   const s = applyNameFilter(src, ['Bot']);
-  for (const k of ['total', 'by_status', 'by_kind', 'volume', 'days']) { assert.equal(s.activations.data[k], undefined, `activations.${k}`); assert.equal(s.feedback.data[k], undefined, `feedback.${k}`); }
+  for (const k of ['total', 'by_status', 'by_kind', 'volume', 'days']) assert.equal(s.activations.data[k], undefined, `activations.${k}`);
+  assert.deepEqual([s.feedback.data.total, s.feedback.data.days, s.feedback.data.allServers], [9, 90, true], 'Feedback-Summen bleiben, gekennzeichnet als alle Server');
   assert.equal(s.activations.data.pending_count, 1);
   assert.equal(s.dashboardActivity.available, true, 'Dashboard-Aktivität bleibt sichtbar (nur Summe über alle)');
 });
@@ -166,4 +168,17 @@ test('Gesamtlage: ohne passende Top-Server bleiben die echten Zahlen aller Serve
   assert.equal(out.statsGlobal.data.allServers, true);
   assert.match(out.statsGlobal.data.filterNote, /10 aktivsten Server/);
   assert.equal(out.statsGlobal.data.daily[0].messages, 5);
+});
+
+test('Summen über alle Server: Namen und Listen je Server werden entfernt', () => {
+  const raw = { available: true, data: { total: 5, by_status: { open: 2 }, volume: [{ date: '2026-01-01', created: 1 }], items: [{ name: 'Fremdserver', total: 3 }], top: [{ server: 'Anderer' }], name: 'X' } };
+  const out = applyNameFilter({ tickets: raw }, ['BaLuBB', 'Bot']);
+  const text = JSON.stringify(out.tickets);
+  assert.ok(!/Fremdserver|Anderer/.test(text));
+  assert.deepEqual([out.tickets.data.total, out.tickets.data.volume.length], [5, 1]);
+});
+
+test('Feedback: Summen bleiben bei aktivem Filter (gekennzeichnet), die Liste bleibt gefiltert', () => {
+  const s = applyNameFilter({ feedback: { available: true, data: { total: 8, volume: [{ date: '2026-01-01', received: 2 }], new_count: 2, new: [{ server: 'Fremd', text: 'x' }, { server: 'Bot Club', text: 'y' }] } } }, ['BaLuBB', 'Bot']);
+  assert.deepEqual([s.feedback.data.total, s.feedback.data.allServers, s.feedback.data.new.length], [8, true, 1]);
 });
