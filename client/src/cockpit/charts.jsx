@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { compact, num } from './data.js';
+import { compact, num, isNum } from './data.js';
 import { useHeightFactor, useScale } from './ui.jsx';
 
 /** Misst die Breite in Layout-Pixeln (bleibt auch bei skalierter TV-Bühne richtig). */
@@ -70,14 +70,16 @@ export function TimeChart({ data, series, height = 170, format = compact, label 
   const [hover, setHover] = useState(null);
   const n = data.length;
   const H = height * s * hf;
-  const max = useMemo(() => niceMax(Math.max(0, ...data.flatMap((d) => series.map((x) => Number(d[x.key]) || 0)))), [data, series]);
+  const max = useMemo(() => niceMax(Math.max(0, ...data.flatMap((d) => series.map((x) => (isNum(d[x.key]) ? Number(d[x.key]) : 0))))), [data, series]);
   const fs = 12.5 * s, padR = 12 * s, padT = 10 * s, padB = 26 * s;
   const padL = (Math.max(...[0, max / 2, max].map((t) => format(t).length)) * 7.6 + 14) * s;
   const plotW = Math.max(0, w - padL - padR), plotH = H - padT - padB;
   const X = (i) => padL + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
   const Y = (v) => padT + plotH - (v / max) * plotH;
   const ticks = [0, max / 2, max];
-  const path = (key) => data.map((d, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)},${Y(Number(d[key]) || 0).toFixed(1)}`).join('');
+  // Fehlende Werte werden nicht als 0 gezeichnet: die Linie hat dort eine Lücke
+  const path = (key) => data.map((d, i) => (isNum(d[key]) ? `${i && isNum(data[i - 1][key]) ? 'L' : 'M'}${X(i).toFixed(1)},${Y(Number(d[key])).toFixed(1)}` : '')).join('');
+  const complete = (key) => data.every((d) => isNum(d[key]));
   const onMove = (e) => {
     const box = e.currentTarget.getBoundingClientRect();
     const scale = box.width ? w / box.width : 1; // robust bei skalierter Bühne
@@ -102,15 +104,15 @@ export function TimeChart({ data, series, height = 170, format = compact, label 
           ))}
           {series.map((x) => (
             <g key={x.key}>
-              {(x.area ?? series.length === 1) && n > 1 && <path d={`${path(x.key)}L${X(n - 1)},${Y(0)}L${X(0)},${Y(0)}Z`} fill={x.color} opacity="0.12" />}
+              {(x.area ?? series.length === 1) && n > 1 && complete(x.key) && <path d={`${path(x.key)}L${X(n - 1)},${Y(0)}L${X(0)},${Y(0)}Z`} fill={x.color} opacity="0.12" />}
               <path d={path(x.key)} fill="none" stroke={x.color} strokeWidth={2 * Math.max(1, s * 0.8)} strokeLinejoin="round" strokeLinecap="round" />
-              {n === 1 && <circle cx={X(0)} cy={Y(Number(data[0][x.key]) || 0)} r={4 * s} fill={x.color} />}
+              {n === 1 && isNum(data[0][x.key]) && <circle cx={X(0)} cy={Y(Number(data[0][x.key]))} r={4 * s} fill={x.color} />}
             </g>
           ))}
           {hv && (
             <g pointerEvents="none">
               <line x1={X(hover)} x2={X(hover)} y1={padT} y2={padT + plotH} stroke="var(--muted)" strokeWidth="1" />
-              {series.map((x) => <circle key={x.key} cx={X(hover)} cy={Y(Number(hv[x.key]) || 0)} r={4.5 * s} fill={x.color} stroke="var(--surface)" strokeWidth="2" />)}
+              {series.filter((x) => isNum(hv[x.key])).map((x) => <circle key={x.key} cx={X(hover)} cy={Y(Number(hv[x.key]))} r={4.5 * s} fill={x.color} stroke="var(--surface)" strokeWidth="2" />)}
             </g>
           )}
           <rect x={padL} y={padT} width={plotW} height={plotH} fill="transparent" />
@@ -135,7 +137,7 @@ export function Columns({ data, series, height = 170, label }) {
   const [ref, w] = useWidth();
   const [hover, setHover] = useState(null);
   const H = height * s * hf, n = data.length;
-  const totals = data.map((d) => d.values.reduce((a, b) => a + (Number(b) || 0), 0));
+  const totals = data.map((d) => d.values.reduce((a, b) => a + (isNum(b) ? Number(b) : 0), 0));
   const max = niceMax(Math.max(0, ...totals));
   const fs = 12.5 * s, padR = 8 * s, padT = 10 * s, padB = 26 * s;
   const padL = (Math.max(...[0, max / 2, max].map((t) => compact(t).length)) * 7.6 + 14) * s;
@@ -164,7 +166,7 @@ export function Columns({ data, series, height = 170, label }) {
             const x = padL + band * i + (band - bw) / 2;
             let acc = 0;
             const segs = d.values.map((v, k) => {
-              const val = Number(v) || 0;
+              const val = isNum(v) ? Number(v) : 0; // nur für die Höhe; im Hinweis steht bei fehlendem Wert „–“
               const y1 = Y(acc + val), y0 = Y(acc);
               acc += val;
               return { k, val, y: y1, h: Math.max(0, y0 - y1 - (k > 0 ? gap : 0)) };
@@ -172,6 +174,7 @@ export function Columns({ data, series, height = 170, label }) {
             return (
               <g key={d.date ?? i} onPointerEnter={() => setHover(i)} opacity={hover == null || hover === i ? 1 : 0.55}>
                 <rect x={padL + band * i} y={padT} width={band} height={plotH} fill="transparent" />
+                {d.values.every((v) => !isNum(v)) && <rect x={x} y={Y(0) - 2} width={bw} height={2} fill="var(--muted)" opacity="0.6"><title>keine Daten</title></rect>}
                 {segs.map((g, idx) => idx === segs.length - 1
                   ? <path key={g.k} d={topPath(x, g.y, bw, g.h)} fill={series[g.k].color} />
                   : <rect key={g.k} x={x} y={g.y} width={bw} height={g.h} fill={series[g.k].color} />)}
@@ -193,18 +196,19 @@ export function Columns({ data, series, height = 170, label }) {
 /** Waagerechte Balken mit Wert an der Spitze (passt der Wert nicht daneben, steht er im Balken). */
 export function HBars({ rows, format = num, color = 'var(--blue-line)', max, empty = 'Keine Daten.' }) {
   if (!rows.length) return <p className="cp-empty">{empty}</p>;
-  const top = max ?? Math.max(1, ...rows.map((r) => r.value));
+  const top = max ?? Math.max(1, ...rows.filter((r) => isNum(r.value)).map((r) => Number(r.value)));
   return (
     <div className="cp-hbars" role="list">
       {rows.map((r) => {
-        const p = Math.max(0, Math.min(100, (r.value / top) * 100));
-        const inside = p > 82;
+        const known = isNum(r.value); // fehlender Wert: kein Balken, nur „–“
+        const p = known ? Math.max(0, Math.min(100, (Number(r.value) / top) * 100)) : 0;
+        const inside = known && p > 82;
         return (
-          <div className="cp-hbar" role="listitem" key={r.label} title={`${r.label}: ${format(r.value)}`}>
+          <div className="cp-hbar" role="listitem" key={r.label} title={`${r.label}: ${known ? format(r.value) : '–'}`}>
             <span className="label">{r.label}</span>
             <span className="track">
-              <span className="bar" style={{ width: `${p}%`, background: r.color ?? color }} />
-              <span className={`val${inside ? ' in' : ''}`} style={inside ? { right: `calc(${100 - p}% + 6px)` } : { left: `calc(${p}% + 8px)` }}>{format(r.value)}</span>
+              {known && <span className="bar" style={{ width: `${p}%`, background: r.color ?? color }} />}
+              <span className={`val${inside ? ' in' : ''}`} style={inside ? { right: `calc(${100 - p}% + 6px)` } : { left: `calc(${p}% + 8px)` }}>{known ? format(r.value) : '–'}</span>
             </span>
           </div>
         );
@@ -272,8 +276,10 @@ export function Meter({ label, value, text, sub }) {
 export function Spark({ values, width = 110, height = 28, color = 'var(--blue-line)' }) {
   const s = useScale();
   const W = width * s, H = height * s;
+  const known = values.filter((v) => isNum(v)).map(Number);
+  if (known.length < 2 || known.length !== values.length) return <span className="muted" title="keine vollständigen Daten">–</span>;
+  values = known;
   const max = Math.max(1, ...values);
-  if (values.length < 2) return null;
   const d = values.map((v, i) => `${i ? 'L' : 'M'}${((i / (values.length - 1)) * W).toFixed(1)},${(H - 2 - (v / max) * (H - 4)).toFixed(1)}`).join('');
   return <svg width={W} height={H} aria-hidden="true"><path d={`${d}L${W},${H}L0,${H}Z`} fill={color} opacity="0.12" /><path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" /></svg>;
 }

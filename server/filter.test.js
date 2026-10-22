@@ -47,7 +47,9 @@ test('Filter: Dienste, Top-Server und Abläufe nach Namen, Summen werden neu ber
   assert.equal(s.automationsHistory.data.aggregate_all, true);
   assert.deepEqual(s.overview.data.servers, { total: 2, running: 1 });
   assert.equal(s.overview.data.automations.errors_today, 1);
-  for (const k of ALL_SERVER_SOURCES) assert.deepEqual([s[k].available, s[k].hidden], [false, true], `${k}: Summen über alle Server werden bei aktivem Filter nicht veröffentlicht`);
+  for (const k of ALL_SERVER_SOURCES.filter((x) => x !== 'statsGlobal')) assert.deepEqual([s[k].available, s[k].hidden], [false, true], `${k}: Summen über alle Server werden bei aktivem Filter nicht veröffentlicht`);
+  assert.deepEqual([s.statsGlobal.available, s.statsGlobal.hidden], [false, undefined], 'Gesamtlage: ohne Verläufe je Server gibt es einen Fehlerzustand statt erfundener Zahlen');
+  assert.match(s.statsGlobal.error, /Tagesverläufe/);
   assert.equal(s0.servers.data.items.length, 3, 'Original bleibt unverändert');
 });
 
@@ -111,4 +113,11 @@ test('Filter: Gesamtlage wird aus den Tagesverläufen der passenden Server zusam
   assert.deepEqual(g.daily.map((d) => [d.date, d.messages, d.joins]), [['2026-10-01', 4, 2], ['2026-10-02', 11, 4]], 'Community (99) und die Summe über alle (1000) fehlen');
   assert.deepEqual([g.servers_with_activity, g.active_chatters, g.derived], [2, 5, true]);
   assert.equal(statsFromServers({ available: true, data: { items: [{ name: 'x' }] } }), null, 'ohne Verläufe nichts erfinden');
+});
+
+test('Filter: fehlt die Liste bei „Zu erledigen“, bleibt der Zähler unbekannt statt 0', () => {
+  const s = applyNameFilter({ activations: ok({ pending_count: 4 }), feedback: ok({ new: [] }) }, ['Bot']);
+  assert.equal(s.activations.data.pending_count, null, 'ohne Liste keine erfundene 0');
+  assert.equal(s.activations.data.pending, undefined);
+  assert.equal(s.feedback.data.new_count, 0, 'eine vorhandene leere Liste ist wirklich leer');
 });

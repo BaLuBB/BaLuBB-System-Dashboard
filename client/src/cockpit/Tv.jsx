@@ -70,7 +70,8 @@ function categoryStates(snap, st) {
   const off = servers.filter((x) => x.state === 'offline').length, starting = servers.filter((x) => x.state === 'starting').length;
   const auto = dataOf(snap, 'automations');
   const cf = snap.cloudflare;
-  const e5 = cf?.data ? (cf.data.status.find((x) => x.klass === '5xx')?.requests ?? 0) / (cf.data.totals.requests || 1) : 0;
+  const tot = cf?.data?.totals?.requests;
+  const e5 = cf?.data && Array.isArray(cf.data.status) && tot > 0 ? (cf.data.status.find((x) => x.klass === '5xx')?.requests ?? 0) / tot : 0; // ohne Gesamtzahl keine Rate
   return {
     Überblick: st.state === 'ok' ? null : st.state,
     Server: servers.length && off === servers.length ? 'crit' : off || starting ? 'warn' : null,
@@ -102,26 +103,21 @@ export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' 
   const transform = useStageTransform();
   const now = useNow(10_000);
   const st = overallStatus(snap, now);
-  const hasCf = snap.cloudflare && snap.cloudflare.configured !== false;
-  // Eine leere Kategorie (kein Server passt zum Namensfilter) läuft nicht in der Diashow mit
-  const topNow = topServers(snap, 30, 'messages', 1);
-  const topEmpty = topNow.available && topNow.items.length === 0;
-  const hidden = (...keys) => keys.every((k) => snap.balubb?.sources?.[k]?.hidden); // Gesamtstatistiken sind bei aktivem Namensfilter ausgeblendet
 
   const slides = useMemo(() => {
     const list = [
       { name: 'Überblick', hf: 0.7, body: <OverviewSlide snap={snap} now={now} /> },
       { name: 'Server', hf: 0.62, body: <ServerSlide snap={snap} now={now} /> },
-      { name: 'Aktivität', hf: 0.5, body: <div className="tv-lage"><OverviewSection snap={snap} range={30} /></div>, skip: hidden('statsGlobal') },
-      { name: 'Top-Server', hf: 0.7, body: <TopBarsSlide snap={snap} />, skip: topEmpty },
+      { name: 'Aktivität', hf: 0.5, body: <div className="tv-lage"><OverviewSection snap={snap} range={30} /></div> },
+      { name: 'Top-Server', hf: 0.7, body: <TopBarsSlide snap={snap} /> },
       { name: 'Abläufe', hf: 0.95, body: <AutomationsSection snap={snap} /> },
-      { name: 'Support', hf: hidden('tickets', 'applications', 'moderation') ? 0.6 : 0.8, body: <SupportSection snap={snap} range={30} />, skip: topEmpty && hidden('tickets', 'applications', 'moderation') },
+      { name: 'Support', hf: 0.7, body: <SupportSection snap={snap} range={30} /> },
     ];
-    if (hasCf) list.push({ name: 'Cloudflare', hf: 0.5, body: <CloudflareSection snap={snap} range={30} /> });
+    list.push({ name: 'Cloudflare', hf: 0.5, body: <CloudflareSection snap={snap} range={30} /> });
     list.push({ name: 'System', hf: 0.7, body: <div className="tv-stack"><SystemSection snap={snap} /><ReleasesSection snap={snap} limit={4} /></div> });
     list.push({ name: 'Dashboard', hf: 1.1, body: <ActivitySection snap={snap} range={30} /> });
-    return list.filter((x) => !x.skip);
-  }, [snap, now, hasCf, topEmpty]);
+    return list; // keine Kategorie verschwindet, fehlende Daten stehen als „–" da
+  }, [snap, now]);
 
   const [idx, setIdx] = useState(0);
   // Läuft nach jedem Wechsel (auch nach einem Klick) neu, so bekommt jede Seite die volle Zeit

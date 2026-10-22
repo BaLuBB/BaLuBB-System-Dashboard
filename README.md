@@ -72,6 +72,15 @@ Wird das Passwort geändert, den Link einmal mit dem neuen Passwort öffnen. Auf
 Je Quelle gibt es Rückfallpfade; fällt eine aus, zeigt nur ihr Bereich „gerade nicht verfügbar“. Die API liefert nur Summen,
 keine Nutzernamen, IDs oder Nachrichten.
 
+### Grundsatz: nichts erfinden, nichts weglassen
+
+Fehlt ein Wert in der API, steht überall **„–“**, nie eine 0 oder eine andere erfundene Zahl. Summen werden nur gebildet, wenn jeder Einzelwert bekannt ist
+(sonst „–“), Diagramme zeichnen fehlende Tage als Lücke, fehlende Balken bleiben leer. Kein Abschnitt, keine Karte und keine Diashow-Kategorie verschwindet,
+nur weil Daten fehlen: sie bleiben stehen, mit „–“ und, wo bekannt, dem Grund (zum Beispiel „Tagesverläufe je Server fehlen in der API“).
+Der Gesamtzustand sagt nicht „Alles in Ordnung“, wenn der Serverzustand unbekannt ist, und nennt nicht verfügbare Datenquellen. Eine echte Null
+(zum Beispiel 0 offene Anfragen aus einer vorhandenen, leeren Liste) bleibt eine 0. Geprüft mit `DEMO_SPARSE=1 npm run demo` (viele Felder fehlen absichtlich)
+und den Tests in `server/honest.test.js`.
+
 ### Namensfilter
 
 Angezeigt werden nur Dienste, Abläufe, Top-Server und die Listen unter „Zu erledigen“ (Aktivierungen, Feedback, Custom-Bot-Anfragen), deren **Name „BaLuBB“ oder „Bot“ enthält**

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Columns, HBars, Legend, Spark, TimeChart } from './charts.jsx';
-import { compact, dataOf, durationText, entryView, lastN, maintenancePhase, num, pctOf, pctText, mbToBytes, bytesText, relTime, source, sumBy } from './data.js';
+import { compact, dataOf, diff, durationText, entryView, isNum, lastN, maintenancePhase, num, pctOf, pctText, mbToBytes, bytesText, relTime, source, sumBy } from './data.js';
 import { overallStatus } from './status.js';
 import { Card, Empty, Pill, Section, Skeleton, Slim, Unavailable } from './ui.jsx';
 import { uptimeByServer } from '../history.js';
@@ -12,29 +12,33 @@ const filtered = (snap) => (snap.filter?.keywords?.length ? filterLabel(snap.fil
 const STATUS_LABEL = { active: 'aktiv', deactivated: 'deaktiviert', pending: 'offen', accepted: 'angenommen', rejected: 'abgelehnt', erledigt: 'erledigt', new: 'neu', open: 'offen', feedback: 'Feedback' };
 const distribution = (o) => Object.entries(o ?? {}).filter(([, v]) => Number.isFinite(Number(v))).map(([k, v]) => `${STATUS_LABEL[k] ?? k} ${num(v)}`).join(' · ');
 
-function TodoBlock({ title, src, countKey, listKey, now }) {
+function TodoBlock({ title, src, countKey, listKey, now, filtered: byName }) {
   if (!src.available) return <Card title={title}><Unavailable /></Card>;
-  const d = src.data, count = Number(d[countKey]) || 0, items = (d[listKey] ?? []).slice(0, 5);
+  const d = src.data, items = (d[listKey] ?? []).slice(0, 5);
+  const count = isNum(d[countKey]) ? Number(d[countKey]) : null; // fehlt die Zahl, steht „–“ und nicht „nichts offen“
+  const kinds = distribution(d.by_kind), states = distribution(d.by_status);
   return (
     <Card title={title} data-open={count > 0 ? 'true' : 'false'}>
-      {count === 0
-        ? <p className="cp-hero"><span className="cp-big muted">0</span><span className="cp-unit">✓ Nichts offen</span></p>
-        : <p className="cp-hero"><span className="cp-big">{num(count)}</span><span className="cp-unit">offen</span></p>}
-      {(d.by_status || d.by_kind || d.total != null) && <p className="muted small">{[d.total != null && `${num(d.total)} gesamt`, distribution(d.by_status), distribution(d.by_kind)].filter(Boolean).join(' · ')}</p>}
+      {count === null
+        ? <p className="cp-hero"><span className="cp-big muted">–</span><span className="cp-unit">keine Angabe</span></p>
+        : count === 0
+          ? <p className="cp-hero"><span className="cp-big muted">0</span><span className="cp-unit">✓ Nichts offen</span></p>
+          : <p className="cp-hero"><span className="cp-big">{num(count)}</span><span className="cp-unit">offen</span></p>}
+      <p className="muted small">{isNum(d.total) ? `${num(d.total)} gesamt` : byName ? '– gesamt (nach Namen nicht filterbar)' : '– gesamt'}{!isNum(d.total) && byName ? '' : ` · ${states || '–'}`}{kinds ? ` · ${kinds}` : ''}</p>
       {items.length > 0 && (
         <ul>
           {items.map((raw, i) => {
             const e = entryView(raw);
             return (
               <li key={i}>
-                <div className="meta"><b>{e.server || 'Eintrag'}</b>{e.time && <time dateTime={e.time}>{relTime(e.time, now)}</time>}</div>
-                {e.text && <div>{e.text}</div>}
+                <div className="meta"><b>{e.server || '–'}</b>{e.time ? <time dateTime={e.time}>{relTime(e.time, now)}</time> : <span>–</span>}</div>
+                <div>{e.text || '–'}</div>
               </li>
             );
           })}
         </ul>
       )}
-      {count > items.length && <p className="muted small">und {count - items.length} weitere</p>}
+      {count != null && count > items.length && <p className="muted small">und {count - items.length} weitere</p>}
     </Card>
   );
 }
@@ -43,9 +47,9 @@ export function TodoSection({ snap, now }) {
   return (
     <Section id="todo" title="Zu erledigen">
       <div className="cp-todo">
-        <TodoBlock title="Neue Server zum Aktivieren" src={source(snap, 'activations')} countKey="pending_count" listKey="pending" now={now} />
-        <TodoBlock title="Neues Feedback" src={source(snap, 'feedback')} countKey="new_count" listKey="new" now={now} />
-        <TodoBlock title="Offene Custom-Bot-Anfragen" src={source(snap, 'customBotRequests')} countKey="open_count" listKey="open" now={now} />
+        <TodoBlock filtered={Boolean(snap.filter?.keywords?.length)} title="Neue Server zum Aktivieren" src={source(snap, 'activations')} countKey="pending_count" listKey="pending" now={now} />
+        <TodoBlock filtered={Boolean(snap.filter?.keywords?.length)} title="Neues Feedback" src={source(snap, 'feedback')} countKey="new_count" listKey="new" now={now} />
+        <TodoBlock filtered={Boolean(snap.filter?.keywords?.length)} title="Offene Custom-Bot-Anfragen" src={source(snap, 'customBotRequests')} countKey="open_count" listKey="open" now={now} />
       </div>
     </Section>
   );
@@ -87,14 +91,12 @@ export function StatusSection({ snap, now, compact = false }) {
               return (
                 <div className="cp-srv" key={s.name}>
                   <div className="name"><b>{s.name}</b>{s.suspended && <Pill state="warn">gesperrt</Pill>}</div>
-                  <div><Pill state={state}>{word}</Pill>{s.uptime_seconds != null && s.state === 'running' && <div className="up since">seit {durationText(s.uptime_seconds)}</div>}{u != null && <div className="up">24 h: {pctText(u, 0)}</div>}{s.network && <div className="up net" title="Netzwerk gesamt">↓ {bytesText(s.network.rx_bytes)} · ↑ {bytesText(s.network.tx_bytes)}</div>}</div>
-                  {s.cpu_percent != null ? (
-                    <div className="vals">
-                      <Slim label="CPU" value={s.cpu_percent} />
-                      <Slim label="Speicher" value={memPct} text={memPct == null ? '–' : `${Math.round(memPct)} %`} sub={s.memory ? bytesText(s.memory.used_bytes) : undefined} />
-                      <Slim label="Platte" value={diskPct} text={diskPct == null ? '–' : `${Math.round(diskPct)} %`} sub={s.disk ? bytesText(s.disk.used_bytes) : undefined} />
-                    </div>
-                  ) : <div className="up">keine Messwerte</div>}
+                  <div><Pill state={state}>{word}</Pill>{s.state === 'running' && <div className="up since">seit {durationText(s.uptime_seconds)}</div>}<div className="up">24 h: {pctText(u, 0)}</div><div className="up net" title="Netzwerk gesamt">↓ {bytesText(s.network?.rx_bytes)} · ↑ {bytesText(s.network?.tx_bytes)}</div></div>
+                  <div className="vals">
+                      <Slim label="CPU" value={isNum(s.cpu_percent) ? Number(s.cpu_percent) : null} />
+                      <Slim label="Speicher" value={memPct} text={memPct == null ? '–' : `${Math.round(memPct)} %`} sub={bytesText(s.memory?.used_bytes)} />
+                      <Slim label="Platte" value={diskPct} text={diskPct == null ? '–' : `${Math.round(diskPct)} %`} sub={bytesText(s.disk?.used_bytes)} />
+                  </div>
                 </div>
               );
             })}
@@ -106,14 +108,15 @@ export function StatusSection({ snap, now, compact = false }) {
 }
 
 export function MaintenanceBars({ snap, now }) {
-  const items = dataOf(snap, 'maintenance')?.items ?? dataOf(snap, 'health')?.maintenance ?? [];
+  const items = dataOf(snap, 'maintenance')?.items ?? dataOf(snap, 'health')?.maintenance ?? null;
+  if (items == null) return <section className="cp-section" aria-label="Wartungen"><Card title="Wartungen"><p className="cp-hero"><span className="cp-big muted">–</span><span className="cp-unit">gerade nicht verfügbar</span></p></Card></section>;
   const shown = items.map((m) => ({ m, p: maintenancePhase(m, now) })).filter((x) => x.p.phase !== 'past');
-  if (!shown.length) return null;
+  if (!shown.length) return <section className="cp-section" aria-label="Wartungen"><Card title="Wartungen"><p className="cp-hero"><span className="cp-big muted">0</span><span className="cp-unit">✓ Keine Wartung geplant</span></p></Card></section>;
   return (
     <section className="cp-section" aria-label="Wartungen">
       {shown.map(({ m, p }) => (
         <div className="cp-maint" key={m.title + m.startsAt}>
-          <div className="head"><Pill state="maint">Wartung</Pill><b>{m.title}</b><span className="muted small">{p.text}</span></div>
+          <div className="head"><Pill state="maint">Wartung</Pill><b>{m.title || '–'}</b><span className="muted small">{p.text}</span></div>
           <p>{new Date(m.startsAt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })} bis {new Date(m.endsAt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}</p>
           {m.description && <p>{m.description}</p>}
         </div>
@@ -125,33 +128,29 @@ export function MaintenanceBars({ snap, now }) {
 /* ---------- Gesamtlage ---------- */
 export function OverviewSection({ snap, range }) {
   const g = source(snap, 'statsGlobal');
-  if (g.hidden) return null;
+  const daily = g.available ? lastN(g.data.daily, range) : [];
+  const has = daily.length > 0;
+  const msgs = has ? sumBy(daily, (d) => d.messages) : null, voice = has ? sumBy(daily, (d) => d.voice_hours) : null;
+  const joins = has ? sumBy(daily, (d) => d.joins) : null, leaves = has ? sumBy(daily, (d) => d.leaves) : null, net = diff(joins, leaves);
+  const d0 = g.available ? g.data : {};
+  const none = <p className="cp-empty">{g.available ? '– Keine Tagesdaten' : `– ${g.reason ?? 'gerade nicht verfügbar'}`}</p>;
+  const missing = g.available && d0.derived && d0.servers_without_daily > 0 ? ` · Verlauf fehlt bei ${d0.servers_without_daily} von ${d0.servers_total} Servern` : '';
   return (
-    <Section id="lage" title="Gesamtlage" sub={g.available && g.data.derived ? `nur gefilterte Server, letzte ${range} Tage` : `alle Server, letzte ${range} Tage`}>
-      {!g.available ? <Card><Unavailable what="Statistik" /></Card> : (() => {
-        const daily = lastN(g.data.daily, range);
-        if (!daily.length) return <Card><Empty>Für diesen Zeitraum liegen noch keine Daten vor.</Empty></Card>;
-        const msgs = sumBy(daily, (d) => d.messages), voice = sumBy(daily, (d) => d.voice_hours);
-        const joins = sumBy(daily, (d) => d.joins), leaves = sumBy(daily, (d) => d.leaves), net = joins - leaves;
-        return (
-          <>
-            <div className="cp-grid cols-3">
-              <Card title="Nachrichten" right={`${num(g.data.servers_with_activity)} aktive Server`}>
-                <p className="cp-hero"><span className="cp-big">{num(msgs)}</span><span className="cp-unit">in {daily.length} Tagen</span></p>
-                <TimeChart data={daily} series={[{ key: 'messages', label: 'Nachrichten', color: 'var(--blue-line)' }]} label="Nachrichten pro Tag" />
-              </Card>
-              <Card title="Sprachstunden" right={`${num(g.data.active_chatters)} aktive Schreiber`}>
-                <p className="cp-hero"><span className="cp-big">{num(voice, 1)}</span><span className="cp-unit">Std. in {daily.length} Tagen</span></p>
-                <TimeChart data={daily} series={[{ key: 'voice_hours', label: 'Sprachstunden', color: 'var(--blue-line)' }]} format={(v) => compact(v)} label="Sprachstunden pro Tag" />
-              </Card>
-              <Card title="Beitritte und Abgänge">
-                <p className="cp-hero"><span className="cp-big">{net > 0 ? '+' : ''}{num(net)}</span><span className="cp-unit">netto · {num(joins)} Beitritte, {num(leaves)} Abgänge</span></p>
-                <TimeChart data={daily} series={[{ key: 'joins', label: 'Beitritte', color: 'var(--blue-line)' }, { key: 'leaves', label: 'Abgänge', color: 'var(--muted)' }]} label="Beitritte und Abgänge pro Tag" />
-              </Card>
-            </div>
-          </>
-        );
-      })()}
+    <Section id="lage" title="Gesamtlage" sub={`${d0.derived || snap.filter?.keywords?.length ? 'nur gefilterte Server' : 'alle Server'}, letzte ${range} Tage${missing}`}>
+      <div className="cp-grid cols-3">
+        <Card title="Nachrichten" right={`${num(d0.servers_with_activity)} aktive Server`}>
+          <p className="cp-hero"><span className="cp-big">{num(msgs)}</span><span className="cp-unit">in {has ? daily.length : '–'} Tagen</span></p>
+          {has ? <TimeChart data={daily} series={[{ key: 'messages', label: 'Nachrichten', color: 'var(--blue-line)' }]} label="Nachrichten pro Tag" /> : none}
+        </Card>
+        <Card title="Sprachstunden" right={`${num(d0.active_chatters)} aktive Schreiber`}>
+          <p className="cp-hero"><span className="cp-big">{num(voice, 1)}</span><span className="cp-unit">Std. in {has ? daily.length : '–'} Tagen</span></p>
+          {has ? <TimeChart data={daily} series={[{ key: 'voice_hours', label: 'Sprachstunden', color: 'var(--blue-line)' }]} format={(v) => compact(v)} label="Sprachstunden pro Tag" /> : none}
+        </Card>
+        <Card title="Beitritte und Abgänge">
+          <p className="cp-hero"><span className="cp-big">{net != null && net > 0 ? '+' : ''}{num(net)}</span><span className="cp-unit">netto · {num(joins)} Beitritte, {num(leaves)} Abgänge</span></p>
+          {has ? <TimeChart data={daily} series={[{ key: 'joins', label: 'Beitritte', color: 'var(--blue-line)' }, { key: 'leaves', label: 'Abgänge', color: 'var(--muted)' }]} label="Beitritte und Abgänge pro Tag" /> : none}
+        </Card>
+      </div>
     </Section>
   );
 }
@@ -185,6 +184,7 @@ function TopDetail({ s }) {
         <div><dt>Bewerbungen</dt><dd>{num(a.total)} gesamt · {num(a.submitted)} neu · {types(a.by_status)}</dd></div>
         <div><dt>Moderation</dt><dd>{num(m.total)} · {types(m.by_type)}</dd></div>
       </dl>
+      {!(s.daily?.length > 1) && <p className="muted small">Verlauf je Tag: –</p>}
       {s.daily?.length > 1 && (
         <div className="cp-grid cols-2">
           <div><h3 className="small muted">Nachrichten pro Tag</h3><TimeChart data={s.daily} series={[{ key: 'messages', label: 'Nachrichten', color: 'var(--blue-line)' }]} height={120} /></div>

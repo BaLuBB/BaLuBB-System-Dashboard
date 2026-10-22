@@ -52,9 +52,20 @@ const sources = {
   counts: { time: iso(now), ticket_categories: 18, ticket_panels: 11, ticket_buttons: 26, role_links: 42, tournaments: 3, tournament_entries: 56, status_subscribers: 91, server_settings_rows: 120 },
   releases: { time: iso(now), items: Array.from({ length: 10 }, (_, i) => ({ version: `2026.10.${20 - i}`, date: `2026-10-${20 - i}`, title: ['Neues Ticket-Panel', 'Statusseite überarbeitet', 'Bewerbungen mit Vorlagen', 'Turnier-Tabellen', 'Fehlerbehebungen'][i % 5], changes: 2, items: [{ kind: 'neu', text: 'Neue Funktion für Betreiber.' }, { kind: 'fix', text: 'Ein Anzeigefehler wurde behoben.' }] })) },
 };
+// DEMO_SPARSE=1: viele Felder fehlen absichtlich, um zu prüfen, dass überall „–“ steht und nichts erfunden oder weggelassen wird
+if (process.env.DEMO_SPARSE) {
+  for (const it of sources.servers.items) for (const k of ['cpu_percent', 'memory', 'disk', 'network', 'uptime_seconds']) delete it[k];
+  for (const k of ['serversTop7', 'serversTop30', 'serversTop90']) for (const it of sources[k].items) for (const f of ['daily', 'tickets', 'applications', 'moderation', 'active_chatters', 'voice_hours']) delete it[f];
+  delete sources.statsGlobal.daily;
+  for (const k of ['tickets', 'applications', 'moderation']) { delete sources[k].volume; delete sources[k].by_status; delete sources[k].totals; delete sources[k].total; }
+  for (const k of ['runs_today', 'errors_today', 'active']) delete sources.automations[k];
+  for (const it of sources.automations.items) { delete it.runs_today; delete it.errors_today; delete it.last_run; delete it.last_status; }
+  for (const k of ['busiest', 'most_errors', 'daily', 'error_rate_percent', 'runs', 'errors']) delete sources.automationsHistory[k];
+  for (const k of ['activations', 'feedback', 'customBotRequests']) { for (const f of ['pending_count', 'new_count', 'open_count', 'total', 'by_status', 'by_kind', 'volume']) delete sources[k][f]; }
+  delete sources.counts.server_settings_rows; delete sources.dashboardActivity.daily; delete sources.dashboardActivity.by_action;
+}
 const keywords = parseKeywords(process.env.NAME_FILTER);
 const wrap = applyNameFilter(Object.fromEntries(Object.entries(sources).map(([k, data]) => [k, { available: true, data }])), keywords);
-wrap.feedback.data.by_kind = { feedback: 8 };
 
 let history = emptyHistory();
 for (let k = 400; k >= 1; k--) {
