@@ -8,7 +8,7 @@ import { Card, Pill, Section } from './ui.jsx';
 import { runningSeries, uptimeByServer } from '../history.js';
 import { filterLabel } from './filter.js';
 
-const emptyTop = (snap) => (snap.filter?.keywords?.length ? `Unter den 10 aktivsten Servern, die die API liefert, ist keiner mit ${filterLabel(snap.filter.keywords)} im Namen.` : 'Keine Aktivität.');
+const emptyTop = (snap) => (snap.filter?.keywords?.length ? `Unter den aktivsten Servern ist keiner mit ${filterLabel(snap.filter.keywords)} im Namen.` : 'Keine Aktivität.');
 
 const NOTE_TAG = { crit: 'Fehler', warn: 'Warnung', maint: 'Wartung', info: 'Hinweis' };
 const serverItems = (snap) => dataOf(snap, 'servers')?.items ?? dataOf(snap, 'health')?.servers?.items ?? [];
@@ -75,8 +75,8 @@ export function TopBarsSlide({ snap }) {
   return (
     <div className="tv-cols tv-top">
       <div className="tv-stack">
-        <Card title="Nachrichten, letzte 30 Tage" right={msg.allServers ? 'alle Server' : undefined}><HBars rows={rows(msg, (s) => s.messages)} empty={emptyTop(snap)} /></Card>
-        <Card title="Sprachstunden, letzte 30 Tage" right={voice.allServers ? 'alle Server' : undefined}><HBars rows={rows(voice, (s) => s.voice_hours)} format={(v) => `${num(v, 1)} Std.`} empty={emptyTop(snap)} /></Card>
+        <Card title="Nachrichten je Server" right="letzte 30 Tage"><HBars rows={rows(msg, (s) => s.messages)} empty={emptyTop(snap)} /></Card>
+        <Card title="Sprachstunden je Server" right="letzte 30 Tage"><HBars rows={rows(voice, (s) => s.voice_hours)} format={(v) => `${num(v, 1)} Std.`} empty={emptyTop(snap)} /></Card>
       </div>
       <TopTable snap={snap} />
     </div>
@@ -87,15 +87,16 @@ function TopTable({ snap }) {
   const t = topServers(snap, 30, 'messages', 8);
   if (!source(snap, 'serversTop30').available) return <Card title="Top-Server"><p className="cp-unavail">gerade nicht verfügbar</p></Card>;
   return (
-    <Card title="Top-Server nach Nachrichten" right={`${t.allServers ? 'alle Server · ' : ''}${num(t.withData)} Server mit Daten`}>
-      {t.allServers && <p className="muted small">Keiner der 10 aktivsten Server passt zum Namensfilter: gezeigt werden alle Server, wie die API sie liefert.</p>}
+    <Card title="Top-Server nach Nachrichten" right={t.items.length ? `${t.items.length} Server${isNum(t.withData) && t.withData > t.items.length ? ` von ${num(t.withData)} mit Daten` : ''}` : undefined}>
+      {t.allServers && <p className="muted small">Hinweis: Unter den aktivsten Servern ist keiner mit {filterLabel(snap.filter.keywords)} im Namen. Deshalb stehen hier alle Server.</p>}
       {t.items.length === 0 && <p className="cp-empty">{emptyTop(snap)}</p>}
       <table className="cp-table">
-        <thead><tr><th>Server</th><th className="num">Mitglieder</th><th className="num">Schreiber</th><th className="num">Beitritte</th><th className="num">Abgänge</th><th className="num">Tickets</th><th className="num">Bewerbungen</th><th className="num">Moderation</th></tr></thead>
+        <thead><tr><th>Server</th><th className="num">Mitglieder</th><th className="num">Schreiber</th><th className="num">Beitritte</th><th className="num">Abgänge</th><th className="num">Tickets</th><th className="num">Bewerb.</th><th className="num">Moderation</th></tr></thead>
         <tbody>{t.items.map((s, i) => (
           <tr key={s.id ?? s.name}><td>{i + 1}. {s.name}</td><td className="num">{num(s.member_count)}</td><td className="num">{num(s.active_chatters)}</td><td className="num">{num(s.joins)}</td><td className="num">{num(s.leaves)}</td><td className="num">{num(s.tickets?.total)}</td><td className="num">{num(s.applications?.total)}</td><td className="num">{num(s.moderation?.total)}</td></tr>
         ))}</tbody>
       </table>
+      <p className="muted small">Schreiber (aktive), Beitritte und Abgänge zählen die letzten 30 Tage, Tickets und Bewerbungen insgesamt, Moderation sind die Aktionen.</p>
     </Card>
   );
 }

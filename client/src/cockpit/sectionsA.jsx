@@ -24,7 +24,7 @@ function TodoBlock({ title, src, countKey, listKey, now, filtered: byName }) {
         : count === 0
           ? <p className="cp-hero"><span className="cp-big muted">0</span><span className="cp-unit">✓ Nichts offen</span></p>
           : <p className="cp-hero"><span className="cp-big">{num(count)}</span><span className="cp-unit">offen</span></p>}
-      <p className="muted small">{isNum(d.total) ? `${num(d.total)} gesamt${d.allServers ? ' (alle Server)' : ''}` : byName ? '– gesamt (nach Namen nicht filterbar)' : '– gesamt'}{!isNum(d.total) && byName ? '' : ` · ${states || '–'}`}{kinds ? ` · ${kinds}` : ''}</p>
+      <p className="muted small">{isNum(d.total) ? `${num(d.total)} gesamt${d.allServers ? ' (alle Server)' : ''}` : '– gesamt'}{!isNum(d.total) && byName ? '' : ` · ${states || '–'}`}{kinds ? ` · ${kinds}` : ''}</p>
       {items.length > 0 && (
         <ul>
           {items.map((raw, i) => {
@@ -136,7 +136,7 @@ export function OverviewSection({ snap, range }) {
   const none = <p className="cp-empty">{g.available ? '– Keine Tagesdaten' : `– ${g.reason ?? 'gerade nicht verfügbar'}`}</p>;
   const missing = g.available && d0.derived && d0.servers_without_daily > 0 ? ` · Verlauf fehlt bei ${d0.servers_without_daily} von ${d0.servers_total} Servern` : '';
   return (
-    <Section id="lage" title="Gesamtlage" sub={`${d0.allServers ? 'alle Server (Filter nicht möglich)' : d0.derived || snap.filter?.keywords?.length ? 'nur gefilterte Server' : 'alle Server'}, letzte ${range} Tage${missing}`}>
+    <Section id="lage" title="Gesamtlage" sub={`${d0.allServers ? 'Summe aller Server' : d0.derived || snap.filter?.keywords?.length ? 'nur gefilterte Server' : 'alle Server'}, letzte ${range} Tage${missing}`}>
       {d0.allServers && <p className="cp-empty">Hinweis: {d0.filterNote}. Gezeigt werden die echten Zahlen über alle Server.</p>}
       <div className="cp-grid cols-3">
         <Card title="Nachrichten" right={`${num(d0.servers_with_activity)} aktive Server`}>
@@ -168,7 +168,7 @@ export function topServers(snap, range, by, count) {
   const src = source(snap, `serversTop${range}`);
   if (!src.available) return { available: false };
   const pick = RANK[by].pick;
-  const items = [...(src.data.items ?? [])].map((s) => (s.name == null ? { ...s, name: '–' } : s)).sort((a, z) => (Number(pick(z)) || 0) - (Number(pick(a)) || 0)).slice(0, count);
+  const items = [...(src.data.items ?? [])].map((s) => (s.name == null ? { ...s, name: '(ohne Namen)' } : s)).sort((a, z) => (Number(pick(z)) || 0) - (Number(pick(a)) || 0)).slice(0, count);
   return { available: true, items, withData: src.data.servers_with_data ?? src.data.items?.length ?? 0, days: src.data.days, allServers: Boolean(src.data.allServers) };
 }
 
@@ -203,7 +203,7 @@ export function TopServersSection({ snap, range, expandable = true, fixedCount, 
   const useCount = fixedCount ?? count, useBy = fixedBy ?? by;
   const top = topServers(snap, range, useBy, useCount);
   return (
-    <Section id="top" title="Top-Server" sub={top.available ? `Rangfolge nach ${RANK[useBy].label}, ${top.days ?? range} Tage${top.allServers ? ' · alle Server (keiner der Top 10 passt zum Namensfilter)' : ''}` : undefined}
+    <Section id="top" title="Top-Server" sub={top.available ? `Rangfolge nach ${RANK[useBy].label}, ${top.days ?? range} Tage${top.allServers ? ` · alle Server, denn unter den aktivsten ist keiner mit ${filtered(snap)} im Namen` : ''}` : undefined}
       right={expandable ? undefined : undefined}>
       {expandable && (
         <div className="cp-controls" role="group" aria-label="Auswahl Top-Server">
