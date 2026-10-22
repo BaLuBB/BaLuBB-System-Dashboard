@@ -1,5 +1,7 @@
 // Namensfilter: nur Dinge anzeigen, deren Name eines der Stichwörter enthält (ohne Beachtung der Groß-/Kleinschreibung).
 // Wird beim Erzeugen des Snapshots angewendet, damit andere Namen gar nicht erst veröffentlicht werden.
+import { isNum, sumBy } from './data.js';
+
 export const DEFAULT_KEYWORDS = ['BaLuBB', 'Bot'];
 // Diese Namen (exakt, ohne Beachtung der Groß-/Kleinschreibung) werden nie angezeigt, auch wenn sie ein Stichwort enthalten.
 export const DEFAULT_EXCLUDE = ['Test Bot 1'];
@@ -28,29 +30,34 @@ const entryName = (e) => {
   return v ?? '';
 };
 
-const sum = (arr, f) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
-
 /** Quellen mit Summen über alle Server: nach Namen nicht aufteilbar, deshalb bei aktivem Filter nicht veröffentlicht. Pro Server gibt es die Zahlen in der Top-Server-Liste. */
 export const ALL_SERVER_SOURCES = ['statsGlobal', 'tickets', 'applications', 'moderation'];
+export const HIDDEN_NOTE = 'wegen Namensfilter nicht angezeigt';
 
-/** Gesamtlage aus den Tagesverläufen der passenden Server (summiert je Tag); ohne Verläufe gibt es null. */
+/**
+ * Gesamtlage aus den Tagesverläufen der passenden Server (summiert je Tag). Fehlt bei einem Server der Verlauf oder ein Wert,
+ * wird nichts ergänzt: die Summe des Tages ist dann unbekannt (null, die Anzeige zeigt „–“) und die Zahl der Server ohne Verlauf wird mitgegeben.
+ */
 export function statsFromServers(topSource) {
   const items = topSource?.available ? (topSource.data.items ?? []) : [];
+  const withDaily = items.filter((it) => Array.isArray(it.daily) && it.daily.length);
+  if (!withDaily.length) return null;
+  const FIELDS = ['messages', 'voice_hours', 'joins', 'leaves'];
   const byDate = new Map();
-  for (const it of items) for (const d of it.daily ?? []) {
-    const row = byDate.get(d.date) ?? { date: d.date, messages: 0, voice_hours: 0, joins: 0, leaves: 0 };
-    row.messages += Number(d.messages) || 0; row.voice_hours += Number(d.voice_hours) || 0; row.joins += Number(d.joins) || 0; row.leaves += Number(d.leaves) || 0;
+  for (const it of withDaily) for (const d of it.daily) {
+    const row = byDate.get(d.date) ?? { date: d.date, ...Object.fromEntries(FIELDS.map((f) => [f, 0])), _bad: new Set() };
+    for (const f of FIELDS) { if (isNum(d[f])) row[f] += Number(d[f]); else row._bad.add(f); }
     byDate.set(d.date, row);
   }
-  if (!byDate.size) return null;
+  const daily = [...byDate.values()].sort((a, z) => a.date.localeCompare(z.date)).map(({ _bad, ...row }) => { for (const f of _bad) row[f] = null; return row; });
   return {
     days: topSource.data.days, derived: true, totals: {},
-    servers_with_activity: items.filter((x) => (Number(x.messages) || 0) > 0).length,
-    active_chatters: items.reduce((a, x) => a + (Number(x.active_chatters) || 0), 0),
-    daily: [...byDate.values()].sort((a, z) => a.date.localeCompare(z.date)),
+    servers_total: items.length, servers_without_daily: items.length - withDaily.length,
+    servers_with_activity: items.every((x) => isNum(x.messages)) ? items.filter((x) => Number(x.messages) > 0).length : null,
+    active_chatters: sumBy(items, (x) => x.active_chatters),
+    daily,
   };
 }
-export const HIDDEN_NOTE = 'wegen Namensfilter nicht angezeigt';
 
 /** Filtert die Quellen nach Namen und berechnet davon abhängige Summen neu. Summen über alle (z. B. Gesamtstatistik) bleiben. */
 export function applyNameFilter(sources, keywords) {
@@ -68,7 +75,7 @@ export function applyNameFilter(sources, keywords) {
   }
   edit('automations', (d) => {
     d.items = d.items.filter((x) => match(x.name));
-    Object.assign(d, { total: d.items.length, active: d.items.filter((x) => x.active).length, runs_today: sum(d.items, (x) => x.runs_today), errors_today: sum(d.items, (x) => x.errors_today) });
+    Object.assign(d, { total: d.items.length, active: d.items.filter((x) => x.active).length, runs_today: sumBy(d.items, (x) => x.runs_today), errors_today: sumBy(d.items, (x) => x.errors_today) }); // fehlt ein Wert: null („–“), keine erfundene Summe
     return d;
   });
   edit('automationsHistory', (d) => { d.busiest = (d.busiest ?? []).filter((x) => match(x.name)); d.most_errors = (d.most_errors ?? []).filter((x) => match(x.name)); d.aggregate_all = true; return d; });
@@ -76,7 +83,8 @@ export function applyNameFilter(sources, keywords) {
   // Ein Eintrag ohne erkennbaren Servernamen wird nicht gezeigt.
   for (const [key, countKey, listKey] of [['activations', 'pending_count', 'pending'], ['feedback', 'new_count', 'new'], ['customBotRequests', 'open_count', 'open']]) {
     edit(key, (d) => {
-      d[listKey] = (d[listKey] ?? []).filter((x) => match(entryName(x))); d[countKey] = d[listKey].length;
+      // Nur wenn die Liste da ist, folgt der Zähler ihr; fehlt sie, bleibt der Zähler unbekannt (null) statt 0
+      if (Array.isArray(d[listKey])) { d[listKey] = d[listKey].filter((x) => match(entryName(x))); d[countKey] = d[listKey].length; } else { delete d[listKey]; d[countKey] = null; }
       if (keywords.length) for (const k of ['total', 'by_status', 'by_kind', 'volume', 'days']) delete d[k]; // Summen über alle Server nicht veröffentlichen
       return d;
     });
@@ -91,7 +99,7 @@ export function applyNameFilter(sources, keywords) {
   // Gesamtlage nicht verstecken, sondern aus den passenden Servern neu zusammensetzen
   if (keywords.length && out.statsGlobal) {
     const derived = statsFromServers(out.serversTop90?.available ? out.serversTop90 : out.serversTop30);
-    if (derived) out.statsGlobal = { available: true, data: derived };
+    out.statsGlobal = derived ? { available: true, data: derived } : { available: false, error: 'Tagesverläufe je Server fehlen in der API', reason: 'Tagesverläufe je Server fehlen in der API' };
   }
   return out;
 };

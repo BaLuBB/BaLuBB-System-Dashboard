@@ -1,7 +1,7 @@
 // Eigene Inhalte für die Diashow-Kategorien (nur Anzeige, keine Bedienung).
 import React from 'react';
 import { Donut, HBars, TimeChart } from './charts.jsx';
-import { dataOf, num, pctText, source } from './data.js';
+import { dataOf, isNum, num, pctText, source } from './data.js';
 import { MaintenanceBars, StatusSection, TodoSection, topServers } from './sectionsA.jsx';
 import { overallStatus } from './status.js';
 import { Card, Pill, Section } from './ui.jsx';
@@ -30,6 +30,7 @@ export function OverviewSlide({ snap, now }) {
         <Section id="zustand" title="Gesamtzustand">
           <div className="cp-card">
             <div className="cp-status" data-state={st.state}><Pill state={st.state} /><span className="sentence" role="status">{st.text}</span></div>
+            {items.length === 0 && <p className="cp-empty">– Keine Serverdaten</p>}
             {items.length > 0 && <Donut data={ring} size={170} centerValue={`${count('running')}/${items.length}`} centerLabel="Server laufen" />}
             {st.notes.length > 0 && (
               <ul className="cp-notes">{st.notes.slice(0, 5).map((n, i) => <li key={i} className={n.level}><span className="tag">{NOTE_TAG[n.level]}</span><span>{n.text}</span></li>)}</ul>
@@ -44,19 +45,22 @@ export function OverviewSlide({ snap, now }) {
 
 /** Kategorie „Server“: Liste mit Balken, daneben Verfügbarkeit und der Verlauf der laufenden Server. */
 export function ServerSlide({ snap, now }) {
-  const up = uptimeByServer(snap.history ?? { names: [], points: [] }, 86400, now).filter((u) => u.uptime != null);
-  const series = runningSeries(snap.history ?? { names: [], points: [] }).map((p) => ({ date: new Date(p.t * 1000).toISOString().slice(0, 10), running: p.running }));
-  const total = Math.max(1, ...runningSeries(snap.history ?? { names: [], points: [] }).map((p) => p.total));
+  const hist = snap.history ?? { names: [], points: [] };
+  const upMap = new Map(uptimeByServer(hist, 86400, now).map((u) => [u.name, u.uptime]));
+  // jeder Dienst steht in der Liste; ohne Verlauf „–“ statt wegzulassen
+  const avail = serverItems(snap).map((s) => ({ label: s.name, value: isNum(upMap.get(s.name)) ? Number(upMap.get(s.name)) : null })).sort((a, z) => (a.value ?? 101) - (z.value ?? 101));
+  const runs = runningSeries(hist);
+  const series = runs.map((p) => ({ date: new Date(p.t * 1000).toISOString().slice(0, 10), running: p.running }));
+  const total = runs.length ? Math.max(...runs.map((p) => p.total)) : null;
   return (
     <div className="tv-cols tv-servers">
       <StatusSection snap={snap} now={now} compact />
       <Section id="verfuegbarkeit" title="Verfügbarkeit und Verlauf" sub="letzte 24 Stunden">
         <Card title="Verfügbarkeit der letzten 24 Stunden">
-          <HBars rows={[...up].sort((a, z) => a.uptime - z.uptime).map((u) => ({ label: u.name, value: u.uptime }))} max={100} format={(v) => pctText(v, 0)}
-            empty="Der Verlauf füllt sich mit jedem Lauf." />
+          <HBars rows={avail} max={100} format={(v) => pctText(v, 0)} empty="–" />
         </Card>
-        <Card title="Laufende Server im Verlauf" right={`bis ${total} Server`}>
-          {series.length > 1 ? <TimeChart data={series} series={[{ key: 'running', label: 'Laufende Server', color: 'var(--blue-line)' }]} label="Laufende Server im Verlauf" /> : <p className="cp-empty">Der Verlauf füllt sich mit jedem Lauf.</p>}
+        <Card title="Laufende Server im Verlauf" right={`bis ${num(total)} Server`}>
+          {series.length > 1 ? <TimeChart data={series} series={[{ key: 'running', label: 'Laufende Server', color: 'var(--blue-line)' }]} label="Laufende Server im Verlauf" /> : <p className="cp-empty">– Der Verlauf füllt sich mit jedem Lauf.</p>}
         </Card>
       </Section>
     </div>
@@ -67,7 +71,7 @@ export function ServerSlide({ snap, now }) {
 export function TopBarsSlide({ snap }) {
   const by = (key) => topServers(snap, 30, key, 8);
   const msg = by('messages'), voice = by('voice');
-  const rows = (t, f) => (t.available ? t.items.map((s) => ({ label: s.name, value: Number(f(s)) || 0 })) : []);
+  const rows = (t, f) => (t.available ? t.items.map((s) => ({ label: s.name, value: isNum(f(s)) ? Number(f(s)) : null })) : []);
   return (
     <div className="tv-cols tv-top">
       <div className="tv-stack">
@@ -83,7 +87,7 @@ function TopTable({ snap }) {
   const t = topServers(snap, 30, 'messages', 8);
   if (!source(snap, 'serversTop30').available) return <Card title="Top-Server"><p className="cp-unavail">gerade nicht verfügbar</p></Card>;
   return (
-    <Card title="Top-Server nach Nachrichten" right={`${t.withData ?? 0} Server mit Daten`}>
+    <Card title="Top-Server nach Nachrichten" right={`${num(t.withData)} Server mit Daten`}>
       {t.items.length === 0 && <p className="cp-empty">{emptyTop(snap)}</p>}
       <table className="cp-table">
         <thead><tr><th>Server</th><th className="num">Mitglieder</th><th className="num">Schreiber</th><th className="num">Beitritte</th><th className="num">Abgänge</th><th className="num">Tickets</th><th className="num">Bewerbungen</th><th className="num">Moderation</th></tr></thead>

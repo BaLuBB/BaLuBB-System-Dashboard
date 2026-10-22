@@ -55,7 +55,7 @@ export function summarize(groups) {
     for (const c of s.countryMap ?? []) addTo(countries, c.clientCountryName, c.requests);
     for (const b of s.browserMap ?? []) addTo(browsers, b.uaBrowserFamily, b.pageViews);
     for (const x of s.threatPathingMap ?? []) addTo(threatTypes, x.threatPathingName, x.requests);
-    return { date: g.dimensions.date, requests: s.requests, uniques: g.uniq?.uniques ?? 0, threats: s.threats };
+    return { date: g.dimensions.date, requests: s.requests, uniques: g.uniq?.uniques ?? null, threats: s.threats };
   });
   return {
     totals: { ...t, cacheRate: t.requests ? (t.cached / t.requests) * 100 : 0 },
@@ -147,8 +147,8 @@ export function createCloudflareClient({
         return {
           enabled: rows.length > 0,
           pageloads: rows.reduce((a, r) => a + r.count, 0),
-          visits: rows.reduce((a, r) => a + (r.sum?.visits ?? 0), 0),
-          pages: rows.map((r) => ({ path: r.dimensions.requestPath, pageloads: r.count, visits: r.sum?.visits ?? 0 })),
+          visits: rows.every((r) => Number.isFinite(r.sum?.visits)) ? rows.reduce((a, r) => a + r.sum.visits, 0) : null,
+          pages: rows.map((r) => ({ path: r.dimensions.requestPath, pageloads: r.count, visits: r.sum?.visits ?? null })),
         };
       }),
     ]);

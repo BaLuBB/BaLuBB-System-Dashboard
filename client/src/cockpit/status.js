@@ -1,5 +1,5 @@
 // Gesamtzustand und Hinweise aus den Quellen. Zustände: ok (grün), warn (gelb), crit (rot), maint (violett).
-import { dataOf, maintenancePhase, source } from './data.js';
+import { SOURCE_LABEL, dataOf, maintenancePhase, source } from './data.js';
 
 export const STATE_LABEL = { ok: 'Läuft', warn: 'Warnung', crit: 'Fehler', maint: 'Wartung' };
 const ORDER = { crit: 0, warn: 1, maint: 2, info: 3 };
@@ -19,6 +19,12 @@ export function computeNotes(snap, now = Date.now()) {
     const servers = dataOf(snap, 'servers');
     const items = servers?.items ?? health?.servers?.items ?? [];
     if (health && (health.ok === false || health.dashboard?.ok === false)) add('crit', 'BaLuBB meldet ein Problem (ok = false).');
+    // Fehlen Daten, wird das offen gesagt: kein „alles in Ordnung“ ohne Grundlage
+    const serverKnown = Boolean(servers || health?.servers);
+    if (!serverKnown) add('warn', 'Serverzustand gerade nicht abrufbar, der Gesamtzustand ist unvollständig.');
+    for (const [k, v] of Object.entries(b.sources ?? {})) {
+      if (!v.available && !v.hidden && !(k === 'servers' || k === 'health') && !k.startsWith('serversTop')) add('info', `${SOURCE_LABEL[k] ?? k}: ${v.reason ?? 'gerade nicht verfügbar'}.`);
+    }
     const offline = items.filter((s) => s.state === 'offline').map((s) => s.name);
     const starting = items.filter((s) => s.state === 'starting').map((s) => s.name);
     if (offline.length) add('warn', `${offline.length} von ${items.length} Servern offline: ${offline.join(', ')}.`);
@@ -55,6 +61,7 @@ export function overallStatus(snap, now = Date.now()) {
   const maint = notes.some((n) => n.level === 'maint');
   if (crit) return { state: 'crit', text: offline === servers.length && servers.length ? 'Alle Dienste offline' : 'Störung', notes };
   if (maint) return { state: 'maint', text: 'Wartung läuft', notes };
+  if (snap.balubb && snap.balubb.configured !== false && !servers.length && !dataOf(snap, 'servers') && !dataOf(snap, 'health')?.servers) return { state: 'warn', text: 'Serverzustand unbekannt', notes };
   if (offline) return { state: 'warn', text: offline === 1 ? '1 Dienst gestört' : `${offline} Dienste gestört`, notes };
   if (starting || notes.some((n) => n.level === 'warn')) return { state: 'warn', text: starting ? 'Ein Dienst startet gerade' : 'Auffälligkeiten', notes };
   return { state: 'ok', text: 'Alles in Ordnung', notes };
