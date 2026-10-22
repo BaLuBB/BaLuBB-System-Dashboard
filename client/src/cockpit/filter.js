@@ -139,7 +139,7 @@ export function applyNameFilter(sources, keywords) {
     const top = out.serversTop90?.available ? out.serversTop90 : out.serversTop30;
     const derived = top?.data?.allServers ? null : statsFromServers(top);
     const reason = top?.available && (top.data.allServers || !(top.data.items ?? []).length)
-      ? 'Die API liefert höchstens die 10 aktivsten Server; darunter ist keiner, der zum Namensfilter passt'
+      ? `Für Server mit ${filterLabel(keywords)} im Namen liefert die API keine Tageswerte`
       : 'Tagesverläufe je Server fehlen in der API';
     if (derived) out.statsGlobal = { available: true, data: derived };
     else if (raw.available && Array.isArray(raw.data?.daily) && raw.data.daily.length) out.statsGlobal = { available: true, data: { ...raw.data, allServers: true, filterNote: reason } };

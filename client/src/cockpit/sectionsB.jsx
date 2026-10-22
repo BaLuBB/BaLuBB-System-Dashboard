@@ -115,7 +115,7 @@ export function SupportSection({ snap, range }) {
   const t = source(snap, 'tickets'), ap = source(snap, 'applications'), mo = source(snap, 'moderation');
   if (t.hidden && ap.hidden && mo.hidden) return <SupportByServer snap={snap} />;
   return (
-    <Section id="support" title="Tickets, Bewerbungen, Moderation" sub={`letzte ${range} Tage${[t, ap, mo].some((x) => x.available && x.data.allServers) ? ' · alle Server (nicht nach Namen aufteilbar)' : ''}`}>
+    <Section id="support" title="Tickets, Bewerbungen, Moderation" sub={`letzte ${range} Tage${[t, ap, mo].some((x) => x.available && x.data.allServers) ? ' · Summe aller Server' : ''}`}>
       <div className="cp-grid cols-4">
         <Card title="Tickets">
           {!t.available ? <Unavailable /> : (() => {
@@ -183,7 +183,7 @@ export function SystemSection({ snap }) {
             ['Version', sys.data.wings?.version], ['Betriebssystem', sys.data.wings?.os], ['Architektur', sys.data.wings?.architecture],
             ['CPUs', num(sys.data.wings?.cpu_count)], ['Kernel', sys.data.wings?.kernel_version]]} />}
         </Card>
-        <Card title="Bestand" right={filtered ? 'alle Server (nicht nach Namen aufteilbar)' : undefined}>
+        <Card title="Bestand" right={filtered ? 'Summe aller Server' : undefined}>
           {!counts.available ? <Unavailable /> : <Def rows={[
             ['Ticket-Kategorien', num(counts.data.ticket_categories)], ['Panels', num(counts.data.ticket_panels)], ['Buttons', num(counts.data.ticket_buttons)],
             ['Rollen-Links', num(counts.data.role_links)], ['Turniere', `${num(counts.data.tournaments)} (${num(counts.data.tournament_entries)} Einträge)`],
@@ -199,7 +199,7 @@ export function SystemSection({ snap }) {
 export function ActivitySection({ snap, range, compact = false }) {
   const act = source(snap, 'dashboardActivity');
   return (
-    <Section id="aktivitaet" title="Aktivität im Dashboard" sub={`letzte ${range} Tage, nur Zahlen je Art und Tag${snap.filter?.keywords?.length ? ' · alle Server (nicht nach Namen aufteilbar)' : ''}`}>
+    <Section id="aktivitaet" title="Aktivität im Dashboard" sub={`letzte ${range} Tage, nur Zahlen je Art und Tag${snap.filter?.keywords?.length ? ' · Summe aller Server' : ''}`}>
       {(() => {
         const ok = act.available, daily = ok ? lastN(act.data.daily, range) : [], total = daily.length ? sumBy(daily, (d) => d.actions) : null;
         const actions = ok && Array.isArray(act.data.by_action) ? [...act.data.by_action].sort((a, z) => (z.count ?? -1) - (a.count ?? -1)).slice(0, compact ? 5 : 8) : null;
@@ -308,7 +308,7 @@ export function Footer({ snap }) {
   const cf = snap.cloudflare;
   return (
     <footer className="cp-footer">
-      {snap.filter?.keywords?.length > 0 && <div>Filter: Dienste, Abläufe und Top-Server nur mit {filterLabel(snap.filter.keywords)} im Namen. Gesamtlage, Tickets, Bewerbungen, Moderation, Feedback und Dashboard-Aktivität lassen sich nach Namen nicht aufteilen und zeigen die Summen aller Server; die API liefert Zahlen je Server nur für die 10 aktivsten.</div>}
+      {snap.filter?.keywords?.length > 0 && <div>Filter: Dienste, Abläufe und Top-Server nur mit {filterLabel(snap.filter.keywords)} im Namen. Gesamtlage, Tickets, Bewerbungen, Moderation, Feedback und Dashboard-Aktivität zeigen die Summe aller Server, weil die API sie nicht je Dienst liefert.</div>}
       <div>Nur lesen · Datenquellen: BaLuBB-API und Cloudflare-Analysen · Version {typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '1'} · Stand {new Date(snap.generatedAt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}</div>
       <div className="cp-sources" aria-label="Zustand der Datenquellen">
         {states.filter((s) => !s.hidden).map((s) => <span key={s.name} className={s.available ? 'ok' : 'bad'} title={s.error}>{LABEL[s.name] ?? s.name}{s.available ? '' : ' (gerade nicht verfügbar)'}</span>)}

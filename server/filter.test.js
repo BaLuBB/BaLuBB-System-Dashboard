@@ -157,7 +157,7 @@ test('Gesamtlage: kein passender Server unter den Top-Servern nennt den echten G
   const top = { available: true, data: { days: 90, items: [{ name: 'Fremdserver', daily: [{ date: '2026-01-01', messages: 1, voice_hours: 0, joins: 0, leaves: 0 }] }] } };
   const out = applyNameFilter({ statsGlobal: { available: true, data: {} }, serversTop90: top }, ['BaLuBB', 'Bot']);
   assert.equal(out.statsGlobal.available, false);
-  assert.match(out.statsGlobal.reason, /10 aktivsten Server/);
+  assert.match(out.statsGlobal.reason, /liefert die API keine Tageswerte/);
 });
 
 test('Gesamtlage: ohne passende Top-Server bleiben die echten Zahlen aller Server, klar gekennzeichnet', () => {
@@ -166,7 +166,7 @@ test('Gesamtlage: ohne passende Top-Server bleiben die echten Zahlen aller Serve
   const out = applyNameFilter({ statsGlobal: { available: true, data: { daily } }, serversTop90: top }, ['BaLuBB', 'Bot']);
   assert.equal(out.statsGlobal.available, true);
   assert.equal(out.statsGlobal.data.allServers, true);
-  assert.match(out.statsGlobal.data.filterNote, /10 aktivsten Server/);
+  assert.match(out.statsGlobal.data.filterNote, /liefert die API keine Tageswerte/);
   assert.equal(out.statsGlobal.data.daily[0].messages, 5);
 });
 

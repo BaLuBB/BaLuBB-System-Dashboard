@@ -76,7 +76,7 @@ keine Nutzernamen, IDs oder Nachrichten.
 
 Fehlt ein Wert in der API, steht überall **„–“**, nie eine 0 oder eine andere erfundene Zahl. Summen werden nur gebildet, wenn jeder Einzelwert bekannt ist
 (sonst „–“), Diagramme zeichnen fehlende Tage als Lücke, fehlende Balken bleiben leer. Kein Abschnitt, keine Karte und keine Diashow-Kategorie verschwindet,
-nur weil Daten fehlen: sie bleiben stehen, mit „–“ und, wo bekannt, dem Grund (zum Beispiel „Die API liefert höchstens die 10 aktivsten Server; darunter ist keiner, der zum Namensfilter passt“).
+nur weil Daten fehlen: sie bleiben stehen, mit „–“ und, wo bekannt, dem Grund (zum Beispiel „Für Server mit „BaLuBB“ oder „Bot“ im Namen liefert die API keine Tageswerte“).
 Der Gesamtzustand sagt nicht „Alles in Ordnung“, wenn der Serverzustand unbekannt ist, und nennt nicht verfügbare Datenquellen. Eine echte Null
 (zum Beispiel 0 offene Anfragen aus einer vorhandenen, leeren Liste) bleibt eine 0. Geprüft mit `DEMO_SPARSE=1 npm run demo` (viele Felder fehlen absichtlich)
 und den Tests in `server/honest.test.js`.
