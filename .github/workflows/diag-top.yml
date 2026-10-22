@@ -1,0 +1,16 @@
+name: Diag Top
+on: workflow_dispatch
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Feldnamen und Typen von servers/top (keine Werte)
+        env:
+          BALUBB_API_KEY: ${{ secrets.BALUBB_API_KEY }}
+        run: |
+          code=$(curl -sS -o body.json -w "%{http_code}" -H "Authorization: Bearer $BALUBB_API_KEY" "https://bot.balubb.de/api/ext/v1/servers/top?n=10&days=90")
+          echo "HTTP $code"
+          # Pfade mit Typen, Array-Indizes zu [] zusammengefasst, tiefer als vorher
+          jq -r '[paths(scalars) as $p | ($p | map(if type=="number" then "[]" else . end) | join(".")) + " : " + (getpath($p)|type)] | unique | .[]' body.json
+          echo "--- Länge von items[0].daily:"
+          jq -r '.items[0] | to_entries | map(select(.value|type=="array")) | map("\(.key) len=\(.value|length)") | .[]' body.json
