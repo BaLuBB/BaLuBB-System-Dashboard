@@ -167,7 +167,7 @@ export function topServers(snap, range, by, count) {
   const src = source(snap, `serversTop${range}`);
   if (!src.available) return { available: false };
   const pick = RANK[by].pick;
-  const items = [...(src.data.items ?? [])].sort((a, z) => (Number(pick(z)) || 0) - (Number(pick(a)) || 0)).slice(0, count);
+  const items = [...(src.data.items ?? [])].map((s) => (s.name == null ? { ...s, name: '–' } : s)).sort((a, z) => (Number(pick(z)) || 0) - (Number(pick(a)) || 0)).slice(0, count);
   return { available: true, items, withData: src.data.servers_with_data ?? src.data.items?.length ?? 0, days: src.data.days };
 }
 

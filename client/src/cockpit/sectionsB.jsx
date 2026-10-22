@@ -166,7 +166,9 @@ function Def({ rows }) {
   return <dl className="cp-detail-grid">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v ?? '–'}</dd></div>)}</dl>;
 }
 export function SystemSection({ snap }) {
-  const sys = source(snap, 'system'), counts = source(snap, 'counts');
+  const sys = source(snap, 'system'), counts = source(snap, 'counts'), ov = source(snap, 'overview');
+  const cb = ov.available ? ov.data.custom_bots : null;
+  const filtered = Boolean(snap.filter?.keywords?.length);
   return (
     <Section id="system" title="System">
       <div className="cp-grid cols-3">
@@ -181,11 +183,12 @@ export function SystemSection({ snap }) {
             ['Version', sys.data.wings?.version], ['Betriebssystem', sys.data.wings?.os], ['Architektur', sys.data.wings?.architecture],
             ['CPUs', num(sys.data.wings?.cpu_count)], ['Kernel', sys.data.wings?.kernel_version]]} />}
         </Card>
-        <Card title="Bestand">
+        <Card title="Bestand" right={filtered ? 'alle Server (nicht nach Namen aufteilbar)' : undefined}>
           {!counts.available ? <Unavailable /> : <Def rows={[
             ['Ticket-Kategorien', num(counts.data.ticket_categories)], ['Panels', num(counts.data.ticket_panels)], ['Buttons', num(counts.data.ticket_buttons)],
             ['Rollen-Links', num(counts.data.role_links)], ['Turniere', `${num(counts.data.tournaments)} (${num(counts.data.tournament_entries)} Einträge)`],
-            ['Status-Abonnenten', num(counts.data.status_subscribers)], ['Server-Einstellungen', num(counts.data.server_settings_rows)]]} />}
+            ['Status-Abonnenten', num(counts.data.status_subscribers)], ['Server-Einstellungen', num(counts.data.server_settings_rows)],
+            ['Custom-Bots', cb && isNum(cb.total) ? `${num(cb.total)}${cb.by_status && Object.keys(cb.by_status).length ? ` (${Object.entries(cb.by_status).map(([k, v]) => `${k} ${num(v)}`).join(', ')})` : ''}` : filtered ? '– (nach Namen nicht filterbar)' : undefined]]} />}
         </Card>
       </div>
     </Section>
