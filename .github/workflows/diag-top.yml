@@ -1,5 +1,7 @@
 name: Diag Top
-on: workflow_dispatch
+on:
+  push:
+    branches: [claude/diag-top-fields]
 jobs:
   diag:
     runs-on: ubuntu-latest
