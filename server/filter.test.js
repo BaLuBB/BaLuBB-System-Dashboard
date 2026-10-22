@@ -149,3 +149,11 @@ test('Filter: nach dem Filtern kommt kein fremder Servername mehr im Snapshot vo
   for (const n of ['BaLuBB System', 'Bot Web', 'Bot Club', 'Bot Ablauf', 'Bot Sync', 'Bot X', 'BaLuBB Y']) assert.ok(text.includes(n), `${n} bleibt`);
   assert.ok(FOREIGN.length);
 });
+
+test('Gesamtlage: kein passender Server unter den Top-Servern nennt den echten Grund', async () => {
+  const { applyNameFilter } = await import('../client/src/cockpit/filter.js');
+  const top = { available: true, data: { days: 90, items: [{ name: 'Fremdserver', daily: [{ date: '2026-01-01', messages: 1, voice_hours: 0, joins: 0, leaves: 0 }] }] } };
+  const out = applyNameFilter({ statsGlobal: { available: true, data: {} }, serversTop90: top }, ['BaLuBB', 'Bot']);
+  assert.equal(out.statsGlobal.available, false);
+  assert.match(out.statsGlobal.reason, /10 aktivsten Server/);
+});
