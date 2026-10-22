@@ -10,7 +10,7 @@ export function computeNotes(snap, now = Date.now()) {
 
   const interval = snap.intervalMin ?? 5;
   const ageMin = (now - Date.parse(snap.generatedAt)) / 60000;
-  if (ageMin > 15) add('warn', `Daten veraltet: Stand vor ${Math.round(ageMin)} Minuten (erwartet: alle ${interval} Minuten).`);
+  if (ageMin > Math.max(6, 3 * interval)) add('warn', `Daten veraltet: Stand vor ${Math.round(ageMin)} Minuten (erwartet: alle ${interval} Minuten).`);
 
   const b = snap.balubb;
   if (b && b.configured !== false) {

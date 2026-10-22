@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './cockpit/fonts.js';
 import Cockpit, { Loading, useTheme } from './cockpit/Cockpit.jsx';
 import Tv, { TvMessage } from './cockpit/Tv.jsx';
@@ -64,12 +64,36 @@ export default function StaticApp() {
     return () => { stop = true; };
   }, [refresh]);
 
-  // Regelmäßig aktualisieren; ohne Daten im TV-Modus alle 30 s erneut versuchen
+  // Regelmäßig aktualisieren; ohne Daten im TV-Modus alle 30 s erneut versuchen.
+  // Browser bremsen Timer in Hintergrund-Tabs und im Standby: ein kurzer Wächter-Takt prüft deshalb nach dem Alter des letzten Versuchs,
+  // und beim Zurückkehren (sichtbar, Fokus, wieder online, Seite aus dem Cache) wird sofort nachgeladen, wenn die Daten älter als das Intervall sind.
+  const last = useRef({ at: 0, busy: false });
   useEffect(() => {
     const pw = password || (opts.tv ? candidate : '');
     if (!pw) return undefined;
-    const t = setInterval(async () => { if (await refresh(pw) && !password) setPassword(pw); }, snap ? REFRESH_MS : RETRY_MS);
-    return () => clearInterval(t);
+    const every = snap ? REFRESH_MS : RETRY_MS;
+    const due = (slack = 0) => Date.now() - last.current.at >= every - slack;
+    const run = async () => {
+      if (last.current.busy) return;
+      last.current = { at: Date.now(), busy: true };
+      try { if (await refresh(pw) && !password) setPassword(pw); }
+      finally { last.current = { at: Date.now(), busy: false }; }
+    };
+    const check = () => { if (due(1000)) run(); };
+    const wake = () => { if (document.visibilityState !== 'hidden' && due()) run(); };
+    last.current.at = last.current.at || Date.now();
+    const t = setInterval(check, 10 * 1000);
+    document.addEventListener('visibilitychange', wake);
+    window.addEventListener('focus', wake);
+    window.addEventListener('online', wake);
+    window.addEventListener('pageshow', wake);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', wake);
+      window.removeEventListener('focus', wake);
+      window.removeEventListener('online', wake);
+      window.removeEventListener('pageshow', wake);
+    };
   }, [password, snap, refresh]);
 
   const submit = async (e) => {

@@ -42,7 +42,7 @@ export default function Cockpit({ snap, onLogout, onTvLink, error }) {
   const setRange = (r) => { setRangeState(r); safe.set('balubb-range', String(r)); };
   const now = useNow();
   const ageMin = Math.max(0, Math.round((now - Date.parse(snap.generatedAt)) / 60000));
-  const stale = ageMin > 15;
+  const stale = ageMin > Math.max(6, 3 * (snap.intervalMin ?? 5)); // nach drei verpassten Aktualisierungen
   return (
     <div className="cp">
       <div className="cp-page">
