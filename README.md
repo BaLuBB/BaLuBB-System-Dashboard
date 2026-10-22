@@ -102,6 +102,10 @@ Was bei aktivem Filter mit den Zahlen passiert:
 GitHubs eigener Zeitplan (`schedule`) startet bei diesem Repository nicht zuverlässig, die Daten werden dann nur bei einem Merge
 neu geholt. Deshalb startet ein kleiner Cloudflare-Worker (`cloudflare-worker/`) den Workflow **alle 2 Minuten**. Einmalig einrichten:
 
+**Takt der Anzeige:** Der „Stand“ im Snapshot ist der Beginn des 2-Minuten-Intervalls, also immer eine gerade Minute (`generatedAt`; der echte
+Zeitpunkt des Abrufs steht in `builtAt`, bis zu 2 Minuten später). Die Seite holt den neuen Stand kurz nach dem Takt (etwa 75 Sekunden danach,
+wenn die Veröffentlichung durch ist) und versucht es bei Bedarf nach 15, 30 und dann alle 60 Sekunden erneut.
+
 1. **GitHub-Token anlegen:** GitHub → *Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*.
    Name `dashboard-trigger`, Ablauf nach Wunsch (z. B. 1 Jahr), *Repository access → Only select repositories →* `BaLuBB-System-Dashboard`,
    *Permissions → Repository permissions → **Actions: Read and write*** (sonst nichts). Token kopieren.
