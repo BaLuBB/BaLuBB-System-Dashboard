@@ -136,7 +136,8 @@ export function OverviewSection({ snap, range }) {
   const none = <p className="cp-empty">{g.available ? '– Keine Tagesdaten' : `– ${g.reason ?? 'gerade nicht verfügbar'}`}</p>;
   const missing = g.available && d0.derived && d0.servers_without_daily > 0 ? ` · Verlauf fehlt bei ${d0.servers_without_daily} von ${d0.servers_total} Servern` : '';
   return (
-    <Section id="lage" title="Gesamtlage" sub={`${d0.derived || snap.filter?.keywords?.length ? 'nur gefilterte Server' : 'alle Server'}, letzte ${range} Tage${missing}`}>
+    <Section id="lage" title="Gesamtlage" sub={`${d0.allServers ? 'alle Server (Filter nicht möglich)' : d0.derived || snap.filter?.keywords?.length ? 'nur gefilterte Server' : 'alle Server'}, letzte ${range} Tage${missing}`}>
+      {d0.allServers && <p className="cp-empty">Hinweis: {d0.filterNote}. Gezeigt werden die echten Zahlen über alle Server.</p>}
       <div className="cp-grid cols-3">
         <Card title="Nachrichten" right={`${num(d0.servers_with_activity)} aktive Server`}>
           <p className="cp-hero"><span className="cp-big">{num(msgs)}</span><span className="cp-unit">in {has ? daily.length : '–'} Tagen</span></p>
