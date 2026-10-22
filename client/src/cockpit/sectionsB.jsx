@@ -106,7 +106,7 @@ function FeedbackCard({ snap, range }) {
       <p className="cp-hero"><span className="cp-big">{vol.length ? num(sumBy(vol, (x) => x.received)) : '–'}</span><span className="cp-unit">erhalten in {vol.length || '–'} Tagen</span></p>
       {vol.length
         ? <Columns data={vol.map((x) => ({ date: x.date, values: [x.received] }))} series={[{ label: 'Erhalten', color: 'var(--blue-line)' }]} label="Feedback pro Tag" />
-        : <p className="cp-empty">{!fb.available ? '– gerade nicht verfügbar' : snap.filter?.keywords?.length ? '– nach Namen nicht filterbar' : '– Keine Tagesdaten'}</p>}
+        : <p className="cp-empty">{!fb.available ? '– gerade nicht verfügbar' : '– Keine Tagesdaten'}</p>}
     </Card>
   );
 }
@@ -115,7 +115,7 @@ export function SupportSection({ snap, range }) {
   const t = source(snap, 'tickets'), ap = source(snap, 'applications'), mo = source(snap, 'moderation');
   if (t.hidden && ap.hidden && mo.hidden) return <SupportByServer snap={snap} />;
   return (
-    <Section id="support" title="Tickets, Bewerbungen, Moderation" sub={`letzte ${range} Tage`}>
+    <Section id="support" title="Tickets, Bewerbungen, Moderation" sub={`letzte ${range} Tage${[t, ap, mo].some((x) => x.available && x.data.allServers) ? ' · alle Server (nicht nach Namen aufteilbar)' : ''}`}>
       <div className="cp-grid cols-4">
         <Card title="Tickets">
           {!t.available ? <Unavailable /> : (() => {
@@ -308,7 +308,7 @@ export function Footer({ snap }) {
   const cf = snap.cloudflare;
   return (
     <footer className="cp-footer">
-      {snap.filter?.keywords?.length > 0 && <div>Filter: Dienste, Abläufe und Top-Server nur mit {filterLabel(snap.filter.keywords)} im Namen. Gesamtlage, Tickets, Bewerbungen und Moderation stammen nur von diesen Servern; die Dashboard-Aktivität lässt sich nicht nach Namen aufteilen und zeigt alle Server.</div>}
+      {snap.filter?.keywords?.length > 0 && <div>Filter: Dienste, Abläufe und Top-Server nur mit {filterLabel(snap.filter.keywords)} im Namen. Gesamtlage, Tickets, Bewerbungen, Moderation, Feedback und Dashboard-Aktivität lassen sich nach Namen nicht aufteilen und zeigen die Summen aller Server; die API liefert Zahlen je Server nur für die 10 aktivsten.</div>}
       <div>Nur lesen · Datenquellen: BaLuBB-API und Cloudflare-Analysen · Version {typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '1'} · Stand {new Date(snap.generatedAt).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })}</div>
       <div className="cp-sources" aria-label="Zustand der Datenquellen">
         {states.filter((s) => !s.hidden).map((s) => <span key={s.name} className={s.available ? 'ok' : 'bad'} title={s.error}>{LABEL[s.name] ?? s.name}{s.available ? '' : ' (gerade nicht verfügbar)'}</span>)}

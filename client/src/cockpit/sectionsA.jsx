@@ -24,7 +24,7 @@ function TodoBlock({ title, src, countKey, listKey, now, filtered: byName }) {
         : count === 0
           ? <p className="cp-hero"><span className="cp-big muted">0</span><span className="cp-unit">✓ Nichts offen</span></p>
           : <p className="cp-hero"><span className="cp-big">{num(count)}</span><span className="cp-unit">offen</span></p>}
-      <p className="muted small">{isNum(d.total) ? `${num(d.total)} gesamt` : byName ? '– gesamt (nach Namen nicht filterbar)' : '– gesamt'}{!isNum(d.total) && byName ? '' : ` · ${states || '–'}`}{kinds ? ` · ${kinds}` : ''}</p>
+      <p className="muted small">{isNum(d.total) ? `${num(d.total)} gesamt${d.allServers ? ' (alle Server)' : ''}` : byName ? '– gesamt (nach Namen nicht filterbar)' : '– gesamt'}{!isNum(d.total) && byName ? '' : ` · ${states || '–'}`}{kinds ? ` · ${kinds}` : ''}</p>
       {items.length > 0 && (
         <ul>
           {items.map((raw, i) => {
@@ -212,7 +212,7 @@ export function TopServersSection({ snap, range, expandable = true, fixedCount, 
         </div>
       )}
       <div className="cp-card">
-        {!top.available ? <Unavailable what="Top-Server" /> : top.items.length === 0 ? <Empty>{filtered(snap) ? `Kein Server mit ${filtered(snap)} im Namen hat in diesem Zeitraum Aktivität.` : 'In diesem Zeitraum gab es keine Aktivität auf den Servern.'}</Empty> : (
+        {!top.available ? <Unavailable what="Top-Server" /> : top.items.length === 0 ? <Empty>{filtered(snap) ? `Unter den 10 aktivsten Servern, die die API liefert, ist keiner mit ${filtered(snap)} im Namen.` : 'In diesem Zeitraum gab es keine Aktivität auf den Servern.'}</Empty> : (
           <div className="cp-top">
             {top.items.map((s, i) => {
               const isOpen = open === s.id || open === s.name;

@@ -8,7 +8,7 @@ import { Card, Pill, Section } from './ui.jsx';
 import { runningSeries, uptimeByServer } from '../history.js';
 import { filterLabel } from './filter.js';
 
-const emptyTop = (snap) => (snap.filter?.keywords?.length ? `Kein Server mit ${filterLabel(snap.filter.keywords)} im Namen hat Aktivität.` : 'Keine Aktivität.');
+const emptyTop = (snap) => (snap.filter?.keywords?.length ? `Unter den 10 aktivsten Servern, die die API liefert, ist keiner mit ${filterLabel(snap.filter.keywords)} im Namen.` : 'Keine Aktivität.');
 
 const NOTE_TAG = { crit: 'Fehler', warn: 'Warnung', maint: 'Wartung', info: 'Hinweis' };
 const serverItems = (snap) => dataOf(snap, 'servers')?.items ?? dataOf(snap, 'health')?.servers?.items ?? [];
