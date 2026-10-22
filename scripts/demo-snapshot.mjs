@@ -34,7 +34,7 @@ const vol = (f) => series(90, (date) => ({ date, ...f() }));
 
 const sources = {
   health: { ok: true, time: iso(now), dashboard: { ok: true, uptime_seconds: 93784, release: { version: '2026.10.20', date: '2026-10-20' } }, servers: { total: 10, running: 5, items: servers.map(({ name, state }) => ({ name, state })) }, maintenance },
-  overview: { time: iso(now), release: { version: '2026.10.20', date: '2026-10-20' } },
+  overview: { time: iso(now), release: { version: '2026.10.20', date: '2026-10-20' }, tickets: { total: 320, open: 12, closed: 308 }, applications: { total: 64, by_status: { rejected: 14, accepted: 41, pending: 9 } }, moderation: { actions_30_days: 106, by_type: { warn: 41 } }, custom_bots: { total: 3, by_status: { ok: 3 } }, to_do: { servers_to_activate: 2, new_feedback: 1, custom_bot_requests: 0 } },
   servers: { time: iso(now), total: 10, running: 5, items: servers },
   serversTop7: top(7), serversTop30: top(30), serversTop90: top(90),
   maintenance: { time: iso(now), items: maintenance },

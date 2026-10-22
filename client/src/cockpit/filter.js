@@ -32,6 +32,7 @@ const entryName = (e) => {
 
 /** Quellen mit Summen über alle Server: nach Namen nicht aufteilbar, deshalb bei aktivem Filter nicht veröffentlicht. Pro Server gibt es die Zahlen in der Top-Server-Liste. */
 export const ALL_SERVER_SOURCES = ['statsGlobal', 'tickets', 'applications', 'moderation'];
+export const OVERVIEW_ALL_SERVER_BLOCKS = ['tickets', 'applications', 'moderation', 'custom_bots', 'to_do'];
 export const HIDDEN_NOTE = 'wegen Namensfilter nicht angezeigt';
 
 /**
@@ -94,6 +95,8 @@ export function applyNameFilter(sources, keywords) {
     if (sv && d.servers) d.servers = { total: sv.total, running: sv.running };
     const au = out.automations?.available ? out.automations.data : null;
     if (au && d.automations) d.automations = { total: au.total, active: au.active, runs_today: au.runs_today, errors_today: au.errors_today };
+    // Diese Blöcke sind Summen über alle Server und lassen sich nicht nach Namen aufteilen: bei aktivem Filter nicht veröffentlichen
+    if (keywords.length) for (const k of OVERVIEW_ALL_SERVER_BLOCKS) delete d[k];
     return d;
   });
   // Gesamtlage nicht verstecken, sondern aus den passenden Servern neu zusammensetzen

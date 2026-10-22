@@ -121,3 +121,31 @@ test('Filter: fehlt die Liste bei „Zu erledigen“, bleibt der Zähler unbekan
   assert.equal(s.activations.data.pending, undefined);
   assert.equal(s.feedback.data.new_count, 0, 'eine vorhandene leere Liste ist wirklich leer');
 });
+
+test('Filter: Summen über alle Server werden auch aus der Übersicht nicht veröffentlicht', () => {
+  const ov = ok({ servers: { total: 3, running: 2 }, automations: { total: 3, active: 2, runs_today: 30, errors_today: 5 },
+    tickets: { total: 9 }, applications: { total: 4 }, moderation: { actions_30_days: 7 }, custom_bots: { total: 2 }, to_do: { new_feedback: 1 } });
+  const on = applyNameFilter({ ...sources(), overview: ov }, ['Bot']);
+  for (const k of ['tickets', 'applications', 'moderation', 'custom_bots', 'to_do']) assert.equal(on.overview.data[k], undefined, `overview.${k}`);
+  assert.ok(on.overview.data.servers && on.overview.data.automations, 'Server und Abläufe bleiben (gefiltert)');
+  const off = applyNameFilter({ ...sources(), overview: ov }, []);
+  for (const k of ['tickets', 'applications', 'moderation', 'custom_bots', 'to_do']) assert.ok(off.overview.data[k], `ohne Filter bleibt overview.${k}`);
+});
+
+test('Filter: nach dem Filtern kommt kein fremder Servername mehr im Snapshot vor', () => {
+  const FOREIGN = ['Fremd Alpha', 'Fremd Beta', 'Test Bot 1'];
+  const src = {
+    servers: ok({ total: 4, running: 4, items: [{ name: 'BaLuBB System', state: 'running' }, { name: 'Fremd Alpha', state: 'running' }, { name: 'Test Bot 1', state: 'running' }] }),
+    health: ok({ servers: { total: 3, running: 3, items: [{ name: 'Fremd Beta', state: 'running' }, { name: 'Bot Web', state: 'running' }] } }),
+    serversTop30: ok({ items: [{ name: 'Fremd Alpha', daily: [] }, { name: 'Bot Club', daily: [] }, { name: 'Test Bot 1' }] }),
+    automations: ok({ items: [{ name: 'Fremd Beta Ablauf' }, { name: 'Bot Ablauf' }] }),
+    automationsHistory: ok({ busiest: [{ name: 'Fremd Alpha Sync', runs: 1 }, { name: 'Bot Sync', runs: 2 }], most_errors: [{ name: 'Fremd Beta', errors: 1 }] }),
+    activations: ok({ pending: [{ server: 'Fremd Alpha' }, { server: 'Bot X' }] }),
+    feedback: ok({ new: [{ server: 'Test Bot 1', text: 'Fremd Beta sagt etwas' }, { server: 'BaLuBB Y', text: 'ok' }] }),
+    customBotRequests: ok({ open: [{ guild_name: 'Fremd Alpha' }] }),
+  };
+  const text = JSON.stringify(applyNameFilter(src, ['BaLuBB', 'Bot']));
+  for (const n of ['Fremd Alpha', 'Fremd Beta', 'Fremd Beta Ablauf', 'Fremd Alpha Sync', 'Test Bot 1']) assert.ok(!text.includes(n), `${n} darf nicht vorkommen`);
+  for (const n of ['BaLuBB System', 'Bot Web', 'Bot Club', 'Bot Ablauf', 'Bot Sync', 'Bot X', 'BaLuBB Y']) assert.ok(text.includes(n), `${n} bleibt`);
+  assert.ok(FOREIGN.length);
+});
