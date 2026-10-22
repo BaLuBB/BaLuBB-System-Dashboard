@@ -24,3 +24,13 @@ jobs:
             curl -sS -H "Authorization: Bearer $BALUBB_API_KEY" "https://bot.balubb.de/api/ext/v1/$q" -o b.json
             echo "$q: items=$(jq '.items|length' b.json) servers_with_data=$(jq '.servers_with_data' b.json) passend=$(jq '[.items[]|select((.name//"")|test("balubb|bot";"i"))|select(.name!="Test Bot 1")]|length' b.json) mit_daily=$(jq '[.items[]|select((.daily//[])|length>0)]|length' b.json) passend_mit_daily=$(jq '[.items[]|select((.name//"")|test("balubb|bot";"i"))|select(.name!="Test Bot 1")|select((.daily//[])|length>0)]|length' b.json)"
           done
+      - name: n groesser (nur Zaehlung)
+        env:
+          BALUBB_API_KEY: ${{ secrets.BALUBB_API_KEY }}
+        run: |
+          for n in 11 20 50 100; do
+            code=$(curl -sS -o b.json -w "%{http_code}" -H "Authorization: Bearer $BALUBB_API_KEY" "https://bot.balubb.de/api/ext/v1/servers/top?n=$n&days=90")
+            echo "n=$n HTTP $code items=$(jq '.items|length' b.json 2>/dev/null) passend=$(jq '[.items[]|select((.name//"")|test("balubb|bot";"i"))|select(.name!="Test Bot 1")]|length' b.json 2>/dev/null) fehler=$(jq -r '.error//.message//""' b.json 2>/dev/null | cut -c1-80)"
+          done
+          code=$(curl -sS -o s.json -w "%{http_code}" -H "Authorization: Bearer $BALUBB_API_KEY" "https://bot.balubb.de/api/ext/v1/servers")
+          echo "servers HTTP $code Feldnamen: $(jq -r '.items[0]|keys|join(",")' s.json)"
