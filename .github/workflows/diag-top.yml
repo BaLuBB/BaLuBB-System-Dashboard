@@ -16,3 +16,11 @@ jobs:
           jq -r '[paths(scalars) as $p | ($p | map(if type=="number" then "[]" else . end) | join(".")) + " : " + (getpath($p)|type)] | unique | .[]' body.json
           echo "--- Länge von items[0].daily:"
           jq -r '.items[0] | to_entries | map(select(.value|type=="array")) | map("\(.key) len=\(.value|length)") | .[]' body.json
+      - name: Zaehlung (keine Namen)
+        env:
+          BALUBB_API_KEY: ${{ secrets.BALUBB_API_KEY }}
+        run: |
+          for q in "servers/top?n=10&days=90" "servers/top?n=10"; do
+            curl -sS -H "Authorization: Bearer $BALUBB_API_KEY" "https://bot.balubb.de/api/ext/v1/$q" -o b.json
+            echo "$q: items=$(jq '.items|length' b.json) servers_with_data=$(jq '.servers_with_data' b.json) passend=$(jq '[.items[]|select((.name//"")|test("balubb|bot";"i"))|select(.name!="Test Bot 1")]|length' b.json) mit_daily=$(jq '[.items[]|select((.daily//[])|length>0)]|length' b.json) passend_mit_daily=$(jq '[.items[]|select((.name//"")|test("balubb|bot";"i"))|select(.name!="Test Bot 1")|select((.daily//[])|length>0)]|length' b.json)"
+          done
