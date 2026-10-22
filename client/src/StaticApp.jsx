@@ -4,8 +4,8 @@ import Cockpit, { Loading, useTheme } from './cockpit/Cockpit.jsx';
 import Tv, { TvMessage } from './cockpit/Tv.jsx';
 import { decryptJson } from './crypto.js';
 import { readOptions, tvLink } from './tvmode.js';
+import { isBehind } from './slot.js';
 
-const REFRESH_MS = 2 * 60 * 1000;
 const RETRY_MS = 30 * 1000;
 const opts = readOptions();
 
@@ -46,8 +46,8 @@ export default function StaticApp() {
   const [remember, setRemember] = useState(true);
 
   const refresh = useCallback(async (pw) => {
-    try { setSnap(await load(pw)); setError(null); setLostSince(null); return true; }
-    catch (e) { setError(e.message); setLostSince((t) => t ?? Date.now()); return false; }
+    try { const next = await load(pw); setSnap(next); setError(null); setLostSince(null); return next; }
+    catch (e) { setError(e.message); setLostSince((t) => t ?? Date.now()); return null; }
   }, []);
 
   // Automatische Anmeldung mit dem Passwort aus dem Link (#pw=...) oder aus dem Browser-Speicher
@@ -64,25 +64,32 @@ export default function StaticApp() {
     return () => { stop = true; };
   }, [refresh]);
 
-  // Regelmäßig aktualisieren; ohne Daten im TV-Modus alle 30 s erneut versuchen.
-  // Browser bremsen Timer in Hintergrund-Tabs und im Standby: ein kurzer Wächter-Takt prüft deshalb nach dem Alter des letzten Versuchs,
-  // und beim Zurückkehren (sichtbar, Fokus, wieder online, Seite aus dem Cache) wird sofort nachgeladen, wenn die Daten älter als das Intervall sind.
-  const last = useRef({ at: 0, busy: false });
+  // Aktualisierung im Takt des Snapshots: er trägt den Beginn seines Intervalls (gerade Minute). Kurz danach, wenn die Veröffentlichung durch ist,
+  // holt die Seite den neuen Stand; ist er noch nicht da, folgt ein Wiederholversuch (15 s, dann 30 s, dann 60 s, damit eine falsch gehende Uhr nicht ständig lädt).
+  // Browser bremsen Timer im Hintergrund: ein kurzer Wächter-Takt prüft deshalb nach Zeitpunkt, und beim Zurückkehren (sichtbar, Fokus, online, Seite aus dem Cache) wird sofort geprüft.
+  // Ohne Daten (TV-Modus ohne Verbindung) gilt weiter alle 30 s ein neuer Versuch.
+  const last = useRef({ at: 0, busy: false, misses: 0 });
   useEffect(() => {
     const pw = password || (opts.tv ? candidate : '');
     if (!pw) return undefined;
-    const every = snap ? REFRESH_MS : RETRY_MS;
-    const due = (slack = 0) => Date.now() - last.current.at >= every - slack;
+    const RETRY = [15_000, 30_000, 60_000];
+    const due = () => {
+      const since = Date.now() - last.current.at;
+      if (!snap) return since >= RETRY_MS;
+      if (!isBehind(snap.generatedAt, Date.now(), snap.intervalMin)) return false;
+      return since >= RETRY[Math.min(last.current.misses, RETRY.length - 1)];
+    };
     const run = async () => {
       if (last.current.busy) return;
-      last.current = { at: Date.now(), busy: true };
-      try { if (await refresh(pw) && !password) setPassword(pw); }
-      finally { last.current = { at: Date.now(), busy: false }; }
+      const before = snap?.generatedAt;
+      last.current = { ...last.current, at: Date.now(), busy: true };
+      let next = null;
+      try { next = await refresh(pw); if (next && !password) setPassword(pw); }
+      finally { last.current = { at: Date.now(), busy: false, misses: next && next.generatedAt === before ? last.current.misses + 1 : next ? 0 : last.current.misses + 1 }; }
     };
-    const check = () => { if (due(1000)) run(); };
-    const wake = () => { if (document.visibilityState !== 'hidden' && due()) run(); };
-    last.current.at = last.current.at || Date.now();
-    const t = setInterval(check, 10 * 1000);
+    const check = () => { if (due()) run(); };
+    const wake = () => { if (document.visibilityState !== 'hidden') check(); };
+    const t = setInterval(check, 5 * 1000);
     document.addEventListener('visibilitychange', wake);
     window.addEventListener('focus', wake);
     window.addEventListener('online', wake);

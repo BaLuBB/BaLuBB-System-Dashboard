@@ -8,6 +8,7 @@ import { createCloudflareClient } from '../server/cloudflare.js';
 import { encryptJson, decryptJson } from '../client/src/crypto.js';
 import { appendPoint, emptyHistory } from '../client/src/history.js';
 import { applyNameFilter, filterHistory, parseKeywords } from '../client/src/cockpit/filter.js';
+import { slotStart } from '../client/src/slot.js';
 
 const password = process.env.DASHBOARD_PASSWORD ?? '';
 if (password.length < 12) {
@@ -55,7 +56,9 @@ const items = balubb.sources?.servers?.data?.items ?? balubb.sources?.health?.da
 const base = filterHistory(prev.history, keywords);
 const history = items ? appendPoint(base, { data: { servers: { items } } }) : base;
 
-const snapshot = { generatedAt: new Date().toISOString(), intervalMin: INTERVAL_MIN, filter: { keywords }, balubb, cloudflare, history };
+// Stand = Beginn des Intervalls (bei 2 Minuten eine gerade Minute); builtAt ist der echte Zeitpunkt des Abrufs
+const builtAt = Date.now();
+const snapshot = { generatedAt: new Date(slotStart(builtAt, INTERVAL_MIN)).toISOString(), builtAt: new Date(builtAt).toISOString(), intervalMin: INTERVAL_MIN, filter: { keywords }, balubb, cloudflare, history };
 await mkdir(out, { recursive: true });
 await writeFile(`${out}/snapshot.enc.json`, JSON.stringify(await encryptJson(snapshot, password)));
 
