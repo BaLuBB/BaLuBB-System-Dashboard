@@ -99,14 +99,18 @@ export function applyNameFilter(sources, keywords) {
     if (keywords.length) for (const k of OVERVIEW_ALL_SERVER_BLOCKS) delete d[k];
     return d;
   });
-  // Gesamtlage nicht verstecken, sondern aus den passenden Servern neu zusammensetzen
+  // Gesamtlage nicht verstecken: aus den passenden Servern neu zusammensetzen. Geht das nicht (die API liefert Tagesverläufe nur für die 10 aktivsten Server),
+  // bleiben die echten Zahlen über alle Server stehen, ausdrücklich so gekennzeichnet (allServers) – nichts wird erfunden oder umgerechnet.
   if (keywords.length && out.statsGlobal) {
+    const raw = sources.statsGlobal;
     const derived = statsFromServers(out.serversTop90?.available ? out.serversTop90 : out.serversTop30);
     const top = out.serversTop90?.available ? out.serversTop90 : out.serversTop30;
     const reason = top?.available && !(top.data.items ?? []).length
       ? 'Die API liefert höchstens die 10 aktivsten Server; darunter ist keiner, der zum Namensfilter passt'
       : 'Tagesverläufe je Server fehlen in der API';
-    out.statsGlobal = derived ? { available: true, data: derived } : { available: false, error: reason, reason };
+    if (derived) out.statsGlobal = { available: true, data: derived };
+    else if (raw.available && Array.isArray(raw.data?.daily) && raw.data.daily.length) out.statsGlobal = { available: true, data: { ...raw.data, allServers: true, filterNote: reason } };
+    else out.statsGlobal = { available: false, error: reason, reason };
   }
   return out;
 };
