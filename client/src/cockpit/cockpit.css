@@ -349,3 +349,10 @@ body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger 
 .cp-lastruns li { display: flex; justify-content: space-between; gap: 12px; min-width: 0; } .cp-lastruns li > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cp-tv .cp-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .cp-tv .cp-hbar .label { white-space: normal; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.2; }
+
+/* Top-Server-Tabelle auf dem Fernseher: feste Spalten, damit nichts aus der Karte läuft */
+.cp-tv .tv-top .cp-table { table-layout: fixed; }
+.cp-tv .tv-top .cp-table th, .cp-tv .tv-top .cp-table td { padding: 8px 6px; }
+.cp-tv .tv-top .cp-table th { font-size: .66rem; letter-spacing: 0; }
+.cp-tv .tv-top .cp-table th:first-child, .cp-tv .tv-top .cp-table td:first-child { width: 27%; overflow: hidden; text-overflow: ellipsis; }
+.cp-tv .tv-top { min-width: 0; } .cp-tv .tv-top > * { min-width: 0; }

@@ -169,7 +169,7 @@ export function topServers(snap, range, by, count) {
   if (!src.available) return { available: false };
   const pick = RANK[by].pick;
   const items = [...(src.data.items ?? [])].map((s) => (s.name == null ? { ...s, name: '–' } : s)).sort((a, z) => (Number(pick(z)) || 0) - (Number(pick(a)) || 0)).slice(0, count);
-  return { available: true, items, withData: src.data.servers_with_data ?? src.data.items?.length ?? 0, days: src.data.days };
+  return { available: true, items, withData: src.data.servers_with_data ?? src.data.items?.length ?? 0, days: src.data.days, allServers: Boolean(src.data.allServers) };
 }
 
 function TopDetail({ s }) {
@@ -203,7 +203,7 @@ export function TopServersSection({ snap, range, expandable = true, fixedCount, 
   const useCount = fixedCount ?? count, useBy = fixedBy ?? by;
   const top = topServers(snap, range, useBy, useCount);
   return (
-    <Section id="top" title="Top-Server" sub={top.available ? `Rangfolge nach ${RANK[useBy].label}, ${top.days ?? range} Tage` : undefined}
+    <Section id="top" title="Top-Server" sub={top.available ? `Rangfolge nach ${RANK[useBy].label}, ${top.days ?? range} Tage${top.allServers ? ' · alle Server (keiner der Top 10 passt zum Namensfilter)' : ''}` : undefined}
       right={expandable ? undefined : undefined}>
       {expandable && (
         <div className="cp-controls" role="group" aria-label="Auswahl Top-Server">

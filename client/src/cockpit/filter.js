@@ -96,7 +96,15 @@ export function applyNameFilter(sources, keywords) {
   edit('servers', (d) => { d.items = d.items.filter((x) => match(x.name)); return Object.assign(d, serverTotals(d.items)); });
   edit('health', (d) => { if (d.servers) { d.servers.items = d.servers.items.filter((x) => match(x.name)); Object.assign(d.servers, serverTotals(d.servers.items)); } return d; });
   for (const k of ['serversTop7', 'serversTop30', 'serversTop90']) {
-    edit(k, (d) => { d.items = (d.items ?? []).filter((x) => match(x.name)).map((x, i) => ({ ...x, rank: i + 1 })); d.servers_with_data = d.items.length; return d; });
+    edit(k, (d) => {
+      const all = d.items ?? [];
+      let items = all.filter((x) => match(x.name));
+      // Die API liefert nur die 10 aktivsten Server und ordnet sie keinem Dienst zu: passt keiner zum Filter, bleibt die echte Liste (ohne Ausschlussnamen), gekennzeichnet
+      if (!items.length && keywords.length) { { const any = makeMatcher([]); items = all.filter((x) => any(x.name)); } if (items.length) d.allServers = true; }
+      d.items = items.map((x, i) => ({ ...x, rank: i + 1 }));
+      if (!d.allServers) d.servers_with_data = d.items.length;
+      return d;
+    });
   }
   edit('automations', (d) => {
     d.items = d.items.filter((x) => match(x.name));
@@ -128,9 +136,9 @@ export function applyNameFilter(sources, keywords) {
   // bleiben die echten Zahlen über alle Server stehen, ausdrücklich so gekennzeichnet (allServers) – nichts wird erfunden oder umgerechnet.
   if (keywords.length && out.statsGlobal) {
     const raw = sources.statsGlobal;
-    const derived = statsFromServers(out.serversTop90?.available ? out.serversTop90 : out.serversTop30);
     const top = out.serversTop90?.available ? out.serversTop90 : out.serversTop30;
-    const reason = top?.available && !(top.data.items ?? []).length
+    const derived = top?.data?.allServers ? null : statsFromServers(top);
+    const reason = top?.available && (top.data.allServers || !(top.data.items ?? []).length)
       ? 'Die API liefert höchstens die 10 aktivsten Server; darunter ist keiner, der zum Namensfilter passt'
       : 'Tagesverläufe je Server fehlen in der API';
     if (derived) out.statsGlobal = { available: true, data: derived };
