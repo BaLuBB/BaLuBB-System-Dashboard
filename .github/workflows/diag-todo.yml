@@ -6,13 +6,15 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Feldnamen und Typen (keine Werte)
+      - name: Zaehlung (keine Namen)
         env:
           BALUBB_API_KEY: ${{ secrets.BALUBB_API_KEY }}
         run: |
           H="Authorization: Bearer $BALUBB_API_KEY"; B=https://bot.balubb.de/api/ext/v1
-          for ep in health servers system counts overview maintenance; do
-            code=$(curl -sS -o r.json -w "%{http_code}" -H "$H" "$B/$ep")
-            echo "=== $ep HTTP $code"
-            jq -r '[paths(scalars) as $p | ($p | map(if type=="number" then "[]" else . end) | join(".")) + " : " + (getpath($p)|type)] | unique | .[]' r.json
-          done
+          curl -sS -H "$H" "$B/servers" -o s.json
+          echo "servers gesamt=$(jq '.items|length' s.json)"
+          echo "passend BaLuBB/Bot (ohne Test Bot 1): $(jq '[.items[]|select(.name|test("balubb|bot";"i"))|select(.name!="Test Bot 1")]|length' s.json)"
+          echo "n8n/Datenbank/DB-artig: $(jq '[.items[]|select(.name|test("n8n|daten|db|postgres|mysql|redis|mongo";"i"))]|length' s.json)"
+          echo "Zustaende: $(jq -c '[.items[].state]|group_by(.)|map({(.[0]):length})|add' s.json)"
+          echo "disk.limit_mb Beispiele (Typ/0?): $(jq -c '[.items[]|.disk.limit_mb]' s.json)"
+          echo "memory.limit_mb: $(jq -c '[.items[]|.memory.limit_mb]' s.json)"
