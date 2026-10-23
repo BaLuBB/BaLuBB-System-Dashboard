@@ -75,23 +75,23 @@ test('Filter: „Test Bot 1“ wird nie angezeigt, ähnliche Namen schon', () =>
   assert.equal(m('Bot Club'), true);
 });
 
-test('Filter: Zu-erledigen-Listen zeigen nur passende Server, Zähler folgen, Test Bot 1 nie', () => {
+test('Filter: Zu-erledigen-Listen sind Aufgaben und werden nie nach Namen gefiltert, nur die Ausschlussliste gilt', () => {
   const s = applyNameFilter(sources(), ['BaLuBB', 'Bot']);
-  assert.deepEqual(s.activations.data.pending.map((x) => x.text), ['b', 'c']);
-  assert.equal(s.activations.data.pending_count, 2);
-  assert.deepEqual(s.feedback.data.new.map((x) => x.text), ['y'], 'Test Bot 1 und Eintrag ohne Namen fallen weg');
-  assert.equal(s.feedback.data.new_count, 1);
-  assert.deepEqual([s.customBotRequests.data.open.length, s.customBotRequests.data.open_count], [0, 0]);
-  assert.equal(s.activations.data.total, undefined, 'Gesamtzahlen über alle Server werden nicht veröffentlicht');
+  assert.deepEqual(s.activations.data.pending.map((x) => x.text), ['a', 'b', 'c'], 'auch ein neuer Server ohne BaLuBB/Bot im Namen erscheint');
+  assert.equal(s.activations.data.pending_count, 3);
+  assert.deepEqual(s.feedback.data.new.map((x) => x.text), ['y', 'ohne Servernamen'], 'nur Test Bot 1 fällt weg');
+  assert.equal(s.feedback.data.new_count, 2, 'Zähler der API abzüglich des ausgeschlossenen Eintrags');
+  assert.deepEqual([s.customBotRequests.data.open.length, s.customBotRequests.data.open_count], [1, 1]);
+  assert.equal(s.activations.data.total, 5, 'Summen der Aufgaben bleiben');
   const off = applyNameFilter(sources(), []);
-  assert.deepEqual(off.feedback.data.new.map((x) => x.text), ['y', 'ohne Servernamen'].filter((t) => t !== 'x'), 'ohne Stichwörter nur die Ausschlussliste');
+  assert.deepEqual(off.feedback.data.new.map((x) => x.text), ['y', 'ohne Servernamen'], 'ohne Stichwörter dasselbe');
 });
 
 test('Filter: Summen der „Zu erledigen“-Quellen und Dashboard-Aktivität', () => {
   const src = { ...sources(), activations: ok({ total: 5, by_status: { active: 4 }, pending_count: 1, pending: [{ server: 'Bot X' }] }), feedback: ok({ total: 9, by_kind: { a: 1 }, volume: [{ date: 'd', received: 3 }], days: 90, new_count: 0, new: [] }) };
   const s = applyNameFilter(src, ['Bot']);
-  for (const k of ['total', 'by_status', 'by_kind', 'volume', 'days']) assert.equal(s.activations.data[k], undefined, `activations.${k}`);
-  assert.deepEqual([s.feedback.data.total, s.feedback.data.days, s.feedback.data.allServers], [9, 90, true], 'Feedback-Summen bleiben, gekennzeichnet als alle Server');
+  assert.deepEqual([s.activations.data.total, s.activations.data.by_status], [5, { active: 4 }], 'Aufgaben bleiben vollständig');
+  assert.deepEqual([s.feedback.data.total, s.feedback.data.days], [9, 90]);
   assert.equal(s.activations.data.pending_count, 1);
   assert.equal(s.dashboardActivity.available, true, 'Dashboard-Aktivität bleibt sichtbar (nur Summe über alle)');
 });
@@ -117,9 +117,10 @@ test('Filter: Gesamtlage wird aus den Tagesverläufen der passenden Server zusam
   assert.equal(statsFromServers({ available: true, data: { items: [{ name: 'x' }] } }), null, 'ohne Verläufe nichts erfinden');
 });
 
-test('Filter: fehlt die Liste bei „Zu erledigen“, bleibt der Zähler unbekannt statt 0', () => {
+test('Filter: fehlt die Liste bei „Zu erledigen“, bleibt der Zähler der API, sonst unbekannt statt 0', () => {
+  assert.equal(applyNameFilter({ activations: ok({}) }, ['Bot']).activations.data.pending_count, null, 'weder Liste noch Zähler: unbekannt');
   const s = applyNameFilter({ activations: ok({ pending_count: 4 }), feedback: ok({ new: [] }) }, ['Bot']);
-  assert.equal(s.activations.data.pending_count, null, 'ohne Liste keine erfundene 0');
+  assert.equal(s.activations.data.pending_count, 4, 'ohne Liste gilt der Zähler der API');
   assert.equal(s.activations.data.pending, undefined);
   assert.equal(s.feedback.data.new_count, 0, 'eine vorhandene leere Liste ist wirklich leer');
 });
@@ -142,13 +143,11 @@ test('Filter: nach dem Filtern kommt kein fremder Servername mehr im Snapshot vo
     serversTop30: ok({ items: [{ name: 'Fremd Alpha', daily: [] }, { name: 'Bot Club', daily: [] }, { name: 'Test Bot 1' }] }),
     automations: ok({ items: [{ name: 'Fremd Beta Ablauf' }, { name: 'Bot Ablauf' }] }),
     automationsHistory: ok({ busiest: [{ name: 'Fremd Alpha Sync', runs: 1 }, { name: 'Bot Sync', runs: 2 }], most_errors: [{ name: 'Fremd Beta', errors: 1 }] }),
-    activations: ok({ pending: [{ server: 'Fremd Alpha' }, { server: 'Bot X' }] }),
     feedback: ok({ new: [{ server: 'Test Bot 1', text: 'Fremd Beta sagt etwas' }, { server: 'BaLuBB Y', text: 'ok' }] }),
-    customBotRequests: ok({ open: [{ guild_name: 'Fremd Alpha' }] }),
   };
   const text = JSON.stringify(applyNameFilter(src, ['BaLuBB', 'Bot']));
   for (const n of ['Fremd Alpha', 'Fremd Beta', 'Fremd Beta Ablauf', 'Fremd Alpha Sync', 'Test Bot 1']) assert.ok(!text.includes(n), `${n} darf nicht vorkommen`);
-  for (const n of ['BaLuBB System', 'Bot Web', 'Bot Club', 'Bot Ablauf', 'Bot Sync', 'Bot X', 'BaLuBB Y']) assert.ok(text.includes(n), `${n} bleibt`);
+  for (const n of ['BaLuBB System', 'Bot Web', 'Bot Club', 'Bot Ablauf', 'Bot Sync', 'BaLuBB Y']) assert.ok(text.includes(n), `${n} bleibt`);
   assert.ok(FOREIGN.length);
 });
 
@@ -178,9 +177,10 @@ test('Summen über alle Server: Namen und Listen je Server werden entfernt', () 
   assert.deepEqual([out.tickets.data.total, out.tickets.data.volume.length], [5, 1]);
 });
 
-test('Feedback: Summen bleiben bei aktivem Filter (gekennzeichnet), die Liste bleibt gefiltert', () => {
-  const s = applyNameFilter({ feedback: { available: true, data: { total: 8, volume: [{ date: '2026-01-01', received: 2 }], new_count: 2, new: [{ server: 'Fremd', text: 'x' }, { server: 'Bot Club', text: 'y' }] } } }, ['BaLuBB', 'Bot']);
-  assert.deepEqual([s.feedback.data.total, s.feedback.data.allServers, s.feedback.data.new.length], [8, true, 1]);
+test('Aktivierungen: ein neuer Server ohne BaLuBB/Bot im Namen erscheint und der Zähler stimmt (nie „Nichts offen“ bei offener Aufgabe)', () => {
+  const s = applyNameFilter({ activations: { available: true, data: { pending_count: 1, pending: [{ server: 'Ganz Anderer Name', requested_at: 'x' }] } } }, ['BaLuBB', 'Bot']);
+  assert.equal(s.activations.data.pending_count, 1);
+  assert.equal(s.activations.data.pending.length, 1);
 });
 
 test('Top-Server: passt keiner zum Filter, bleibt die echte Liste (ohne Ausschlussnamen), gekennzeichnet', () => {
