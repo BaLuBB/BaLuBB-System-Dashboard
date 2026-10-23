@@ -204,7 +204,7 @@ export function HBars({ rows, stack = false, format = num, color = 'var(--blue-l
         const p = known ? Math.max(0, Math.min(100, (Number(r.value) / top) * 100)) : 0;
         const inside = known && p > 82;
         return (
-          <div className="cp-hbar" role="listitem" key={r.label} style={{ '--up': rows.length - 1 - idx }} title={`${r.label}: ${known ? format(r.value) : '–'}`}>
+          <div className="cp-hbar" role="listitem" key={`${idx}-${r.label}`} style={{ '--up': rows.length - 1 - idx }} title={`${r.label}: ${known ? format(r.value) : '–'}`}>
             <span className="label">{r.label}</span>
             <span className="track">
               {known && <span className="bar" style={{ width: `${p}%`, background: r.color ?? color }} />}
