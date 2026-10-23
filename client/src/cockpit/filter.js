@@ -159,3 +159,8 @@ export function filterHistory(history, keywords) {
 }
 
 export const filterLabel = (keywords) => keywords.map((k) => `„${k}“`).join(' oder ');
+
+/** Dauerhafter Hinweis, welche Listen gefiltert sind und was alle Server zählt (leer ohne Filter). */
+export const filterHint = (snap) => (snap.filter?.keywords?.length
+  ? `Server, Container und Abläufe: nur mit ${filterLabel(snap.filter.keywords)} im Namen. Aufgaben, Tickets, Bewerbungen und Moderation: alle Server.`
+  : '');

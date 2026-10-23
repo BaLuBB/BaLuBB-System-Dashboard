@@ -421,3 +421,6 @@ body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger 
 .cp-tv .cp-lastruns { gap: 12px; }
 .cp-tv .cp-lastruns li { flex-direction: column; gap: 2px; }
 .cp-tv .cp-lastruns li > span:first-child { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
+/* Dauerhafter Filter-Hinweis */
+.cp-tv .tv-title .tv-filter { margin-top: 2px; font-size: .9rem; color: var(--muted); max-width: 62rem; line-height: 1.25; }
+.cp-header .cp-filter { margin: 4px 0 0; font-size: .85rem; color: var(--muted); max-width: 52rem; }
