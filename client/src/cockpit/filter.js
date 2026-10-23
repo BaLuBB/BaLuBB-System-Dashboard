@@ -112,14 +112,17 @@ export function applyNameFilter(sources, keywords) {
     return d;
   });
   edit('automationsHistory', (d) => { d.busiest = (d.busiest ?? []).filter((x) => match(x.name)); d.most_errors = (d.most_errors ?? []).filter((x) => match(x.name)); d.aggregate_all = true; return d; });
-  // „Zu erledigen“: Einträge von anderen Servern fallen weg (Namen und Texte werden nicht veröffentlicht), der Zähler folgt der Liste.
-  // Ein Eintrag ohne erkennbaren Servernamen wird nicht gezeigt.
+  // „Zu erledigen“ (Aktivierungen, Feedback, Custom-Bot-Anfragen) sind Aufgaben und werden NIE nach Namen gefiltert: ein neuer Server ohne „BaLuBB“ oder „Bot“
+  // im Namen muss trotzdem erscheinen. Nur die Ausschlussliste (z. B. „Test Bot 1“) gilt; der Zähler der API bleibt, abzüglich der ausgeschlossenen Einträge.
+  const notExcluded = makeMatcher([]);
   for (const [key, countKey, listKey] of [['activations', 'pending_count', 'pending'], ['feedback', 'new_count', 'new'], ['customBotRequests', 'open_count', 'open']]) {
     edit(key, (d) => {
-      // Nur wenn die Liste da ist, folgt der Zähler ihr; fehlt sie, bleibt der Zähler unbekannt (null) statt 0
-      if (Array.isArray(d[listKey])) { d[listKey] = d[listKey].filter((x) => match(entryName(x))); d[countKey] = d[listKey].length; } else { delete d[listKey]; d[countKey] = null; }
-      // Summen über alle Server: bei Feedback bleiben sie (gekennzeichnet), sonst gibt es sie nur ohne Filter
-      if (keywords.length) { if (key === 'feedback') d.allServers = true; else for (const k of ['total', 'by_status', 'by_kind', 'volume', 'days']) delete d[k]; }
+      if (Array.isArray(d[listKey])) {
+        const kept = d[listKey].filter((x) => notExcluded(entryName(x)));
+        const removed = d[listKey].length - kept.length;
+        d[listKey] = kept;
+        d[countKey] = isNum(d[countKey]) ? Math.max(0, Number(d[countKey]) - removed) : kept.length;
+      } else { delete d[listKey]; d[countKey] = isNum(d[countKey]) ? Number(d[countKey]) : null; } // ohne Liste: Zähler der API, sonst unbekannt statt 0
       return d;
     });
   }

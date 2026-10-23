@@ -66,4 +66,6 @@ const sources = Object.values(balubb.sources ?? {});
 const okCount = sources.filter((s) => s.available).length;
 const failed = Object.entries(balubb.sources ?? {}).filter(([, s]) => !s.available).map(([k, s]) => `${k} (${s.error})`);
 const cf = cloudflare.configured === false ? 'nicht konfiguriert' : cloudflare.error ? `Fehler: ${cloudflare.error}` : `ok${Object.keys(cloudflare.data?.partErrors ?? {}).length ? ` (Teilfehler: ${Object.keys(cloudflare.data.partErrors).join(', ')})` : ''}`;
-console.log(`Snapshot verschlüsselt geschrieben. BaLuBB: ${balubb.configured === false ? 'nicht konfiguriert' : `${okCount}/${sources.length} Quellen ok${failed.length ? `, ohne Antwort: ${failed.join(', ')}` : ''}`} · Cloudflare: ${cf} · Filter: ${keywords.length ? keywords.join(' oder ') : 'aus'} · Verlauf: ${prev.note}, jetzt ${history.points.length}`);
+const todo = (k, c) => { const d = balubb.sources?.[k]; return d?.available ? (d.data?.[c] ?? '–') : 'k. A.'; }; // nur Zahlen, keine Namen
+const todoText = `Zu erledigen: Aktivierungen ${todo('activations', 'pending_count')}, Feedback ${todo('feedback', 'new_count')}, Custom-Bots ${todo('customBotRequests', 'open_count')}`;
+console.log(`Snapshot verschlüsselt geschrieben. ${todoText} · BaLuBB: ${balubb.configured === false ? 'nicht konfiguriert' : `${okCount}/${sources.length} Quellen ok${failed.length ? `, ohne Antwort: ${failed.join(', ')}` : ''}`} · Cloudflare: ${cf} · Filter: ${keywords.length ? keywords.join(' oder ') : 'aus'} · Verlauf: ${prev.note}, jetzt ${history.points.length}`);
