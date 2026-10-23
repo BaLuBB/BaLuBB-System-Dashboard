@@ -401,3 +401,16 @@ body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger 
 .tvs-legend { color: var(--muted); font-size: 1rem; margin: 22px 0 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tvs-legend i { width: 16px; height: 16px; display: inline-block; }
 .cp-tv .tv-servers .cp-hero .cp-big { font-size: 3rem; }
+
+/* Top-Server (Fernseher): Rangliste mit Spaltengruppen und Erklärung */
+.cp-tv .tv-top .tv-rank th { white-space: normal; line-height: 1.15; vertical-align: bottom; font-size: .8rem; font-family: inherit; padding: 8px 3px; }
+.cp-tv .tv-top .tv-rank td { padding: 8px 3px; }
+.cp-tv .tv-top .tv-rank tr.grp th { font-size: .8rem; color: var(--text); border-bottom: 1px solid var(--line); text-align: center; padding-bottom: 4px; }
+.cp-tv .tv-top .tv-rank th:first-child, .cp-tv .tv-top .tv-rank td:first-child { width: 22%; }
+.cp-tv .tv-top .tv-rank td { font-size: 1.05rem; }
+.cp-tv .tv-top .tv-rank td.key { font-weight: 700; color: var(--text); }
+.cp-tv .tv-top .tv-rank .rk { display: inline-block; min-width: 1.6rem; margin-right: 6px; padding: 1px 0; text-align: center; border-radius: 6px; background: var(--line-soft); font-size: .85rem; font-family: var(--font-mono); }
+.cp-tv .tv-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin: 14px 0 0; }
+.cp-tv .tv-legend dt { font-weight: 600; font-size: .95rem; }
+.cp-tv .tv-legend dd { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.3; }
+.cp-tv .tv-top .tv-rank td:first-child { white-space: normal; text-overflow: clip; line-height: 1.2; }

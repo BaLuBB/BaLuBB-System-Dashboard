@@ -101,20 +101,34 @@ export function TopBarsSlide({ snap }) {
   );
 }
 
+const TOP_LEGEND = [
+  ['Mitglieder', 'So viele Mitglieder hat der Server jetzt.'],
+  ['Nachrichten', 'Geschriebene Nachrichten in 30 Tagen. Danach ist die Rangliste sortiert.'],
+  ['Aktive Schreiber', 'Mitglieder, die in 30 Tagen mindestens einmal geschrieben haben.'],
+  ['Beitritte / Abgänge', 'Wer in 30 Tagen neu dazukam und wer den Server verlassen hat.'],
+  ['Tickets', 'Alle Support-Tickets, die es auf dem Server je gab.'],
+  ['Bewerbungen', 'Alle Bewerbungen, die es auf dem Server je gab.'],
+  ['Moderation', 'Alle Moderations-Aktionen (z. B. Verwarnungen, Sperren) insgesamt.'],
+];
+
 function TopTable({ snap }) {
   const t = topServers(snap, 30, 'messages', 8);
   if (!source(snap, 'serversTop30').available) return <Card title="Top-Server"><p className="cp-unavail">gerade nicht verfügbar</p></Card>;
   return (
-    <Card title="Top-Server nach Nachrichten" right={t.items.length ? `${t.items.length} Server${isNum(t.withData) && t.withData > t.items.length ? ` von ${num(t.withData)} mit Daten` : ''}` : undefined}>
+    <Card title="Rangliste: die aktivsten Server" right={t.items.length ? `${t.items.length} Server${isNum(t.withData) && t.withData > t.items.length ? ` von ${num(t.withData)} mit Daten` : ''}` : undefined}>
+      <p className="muted small">Sortiert nach den Nachrichten der letzten 30 Tage. Platz 1 hat am meisten geschrieben.</p>
       {t.allServers && <p className="muted small">Hinweis: Unter den aktivsten Servern ist keiner mit {filterLabel(snap.filter.keywords)} im Namen. Deshalb stehen hier alle Server.</p>}
       {t.items.length === 0 && <p className="cp-empty">{emptyTop(snap)}</p>}
-      <table className="cp-table">
-        <thead><tr><th>Server</th><th className="num">Mitglieder</th><th className="num">Schreiber</th><th className="num">Beitritte</th><th className="num">Abgänge</th><th className="num">Tickets</th><th className="num">Bewerb.</th><th className="num">Moderation</th></tr></thead>
+      <table className="cp-table tv-rank">
+        <thead>
+          <tr className="grp"><th /><th className="num">jetzt</th><th className="num" colSpan={4}>letzte 30 Tage</th><th className="num" colSpan={3}>insgesamt</th></tr>
+          <tr><th>Platz und Server</th><th className="num">Mit&shy;glieder</th><th className="num">Nach&shy;richten</th><th className="num">Aktive Schreiber</th><th className="num">Beitritte</th><th className="num">Abgänge</th><th className="num">Tickets</th><th className="num">Bewer&shy;bungen</th><th className="num">Modera&shy;tion</th></tr>
+        </thead>
         <tbody>{t.items.map((s, i) => (
-          <tr key={s.id ?? s.name}><td>{i + 1}. {s.name}</td><td className="num">{num(s.member_count)}</td><td className="num">{num(s.active_chatters)}</td><td className="num">{num(s.joins)}</td><td className="num">{num(s.leaves)}</td><td className="num">{num(s.tickets?.total)}</td><td className="num">{num(s.applications?.total)}</td><td className="num">{num(s.moderation?.total)}</td></tr>
+          <tr key={s.id ?? s.name}><td><span className="rk">{i + 1}</span>{s.name}</td><td className="num">{num(s.member_count)}</td><td className="num key">{num(s.messages)}</td><td className="num">{num(s.active_chatters)}</td><td className="num">{num(s.joins)}</td><td className="num">{num(s.leaves)}</td><td className="num">{num(s.tickets?.total)}</td><td className="num">{num(s.applications?.total)}</td><td className="num">{num(s.moderation?.total)}</td></tr>
         ))}</tbody>
       </table>
-      <p className="muted small">Schreiber (aktive), Beitritte und Abgänge zählen die letzten 30 Tage, Tickets und Bewerbungen insgesamt, Moderation sind die Aktionen.</p>
+      <dl className="tv-legend">{TOP_LEGEND.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
     </Card>
   );
 }
