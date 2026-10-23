@@ -28,7 +28,7 @@ export function DebugPanel() {
     ['hinkt hinterher?', s ? (isBehind(s.generatedAt, now, s.intervalMin) ? 'JA' : 'nein') : '–'],
     ['Uhr dieses Geräts', new Date(now).toLocaleTimeString('de-DE')],
     ['Uhr laut Server (Date)', Number.isFinite(server) ? `${new Date(server).toLocaleTimeString('de-DE')} · Abweichung ${min(now - server)}` : '–'],
-    ['Letzter Abruf', f ? `${new Date(f.at).toLocaleTimeString('de-DE')} · HTTP ${f.status} · ${f.ms} ms` : '–'],
+    ['Letzter Abruf', f ? `${new Date(f.at).toLocaleTimeString('de-DE')} · ${f.kind ?? ''} · HTTP ${f.status} · ${f.ms} ms` : '–'],
     ['Fehlversuche in Folge', String(dbg.misses)],
     ['Sichtbarkeit', document.visibilityState],
     ['Letztes Neuladen', lastReload],

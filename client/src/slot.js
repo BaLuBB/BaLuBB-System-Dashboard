@@ -24,3 +24,8 @@ export function isStuck(generatedAt, nowMs, intervalMin, lastReloadMs = 0) {
   const stale = !Number.isFinite(g) || nowMs - g > Math.max(STALE_RELOAD_MS, 3 * slotMs(intervalMin));
   return stale && nowMs - lastReloadMs >= RELOAD_GAP_MS;
 }
+
+// Eigener Dateiname je Intervall: ein fester Name (snapshot.enc.json) kann im Zwischenspeicher von GitHub Pages bis zu 10 Minuten alt bleiben,
+// ein Name, der nie zuvor abgerufen wurde, nicht. Die Seite fragt erst, wenn Bauen und Veröffentlichen sicher durch sind (sonst bliebe ein „nicht gefunden“ hängen).
+export const SLOT_FILE_DELAY_MS = 100_000;
+export const slotFileFor = (nowMs, intervalMin) => `s/${slotStart(nowMs - SLOT_FILE_DELAY_MS, intervalMin)}.json`;

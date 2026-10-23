@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { slotStart, isBehind, SETTLE_MS, isOutdatedCode, isStuck } from '../client/src/slot.js';
+import { slotStart, isBehind, SETTLE_MS, isOutdatedCode, isStuck, slotFileFor, SLOT_FILE_DELAY_MS } from '../client/src/slot.js';
 
 const t = (s) => Date.parse(`2026-10-22T21:${s}Z`);
 
@@ -31,4 +31,11 @@ test('Selbstheilung: neue Version erkennen, festhängende Seite neu laden, aber 
   assert.equal(isStuck(g, t('51:00'), 2, t('49:00')), false, 'gerade erst neu geladen: erst nach 3 Minuten wieder');
   assert.equal(isStuck(g, t('51:00'), 2, t('47:00')), true, 'nach 3 Minuten darf wieder neu geladen werden');
   assert.equal(isStuck('kaputt', t('51:00'), 2, 0), true);
+});
+
+test('Dateiname je Intervall: erst nach Bauen und Veröffentlichen, immer der gleiche Name innerhalb des Intervalls', () => {
+  const slot = Date.parse('2026-10-23T18:56:00Z');
+  assert.equal(slotFileFor(slot + SLOT_FILE_DELAY_MS, 2), `s/${slot}.json`, 'ab 100 s nach Intervallbeginn gilt die Datei dieses Intervalls');
+  assert.equal(slotFileFor(slot + SLOT_FILE_DELAY_MS - 1000, 2), `s/${slot - 120000}.json`, 'davor noch die vom vorigen Intervall');
+  assert.equal(slotFileFor(slot + 119000, 2), slotFileFor(slot + 101000, 2));
 });

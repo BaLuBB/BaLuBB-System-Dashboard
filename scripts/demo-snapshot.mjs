@@ -87,5 +87,8 @@ const cloudflare = { configured: true, fetchedAt: iso(now - 2 * 60e3), data: {
 
 const snap = { generatedAt: iso(now - 2 * 60e3), app: process.env.DEMO_APP ?? (process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 12) : 'dev'), intervalMin: 5, filter: { keywords }, balubb: { configured: true, fetchedAt: iso(now - 2 * 60e3), sources: wrap }, cloudflare, history };
 await mkdir(out, { recursive: true });
-await writeFile(`${out}/snapshot.enc.json`, JSON.stringify(await encryptJson(snap, password)));
+const enc = JSON.stringify(await encryptJson(snap, password));
+await writeFile(`${out}/snapshot.enc.json`, enc);
+await mkdir(`${out}/s`, { recursive: true }); // Datei je Intervall, wie im echten Bau 
+for (const step of [120_000, 300_000]) await writeFile(`${out}/s/${Math.floor((now - 100_000) / step) * step}.json`, enc); // 2 Minuten: Takt des echten Baus; 5 Minuten: Takt der Demo
 console.log(`Demo-Snapshot geschrieben (Passwort: ${password}).`);
