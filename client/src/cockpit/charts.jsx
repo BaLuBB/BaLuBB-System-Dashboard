@@ -194,11 +194,11 @@ export function Columns({ data, series, height = 170, label }) {
 }
 
 /** Waagerechte Balken mit Wert an der Spitze (passt der Wert nicht daneben, steht er im Balken). */
-export function HBars({ rows, format = num, color = 'var(--blue-line)', max, empty = 'Keine Daten.' }) {
+export function HBars({ rows, stack = false, format = num, color = 'var(--blue-line)', max, empty = 'Keine Daten.' }) {
   if (!rows.length) return <p className="cp-empty">{empty}</p>;
   const top = max ?? Math.max(1, ...rows.filter((r) => isNum(r.value)).map((r) => Number(r.value)));
   return (
-    <div className="cp-hbars" role="list">
+    <div className={`cp-hbars${stack ? ' stack' : ''}`} role="list">
       {rows.map((r) => {
         const known = isNum(r.value); // fehlender Wert: kein Balken, nur „–“
         const p = known ? Math.max(0, Math.min(100, (Number(r.value) / top) * 100)) : 0;

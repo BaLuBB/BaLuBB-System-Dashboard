@@ -3,6 +3,7 @@ import { Columns, Donut, HBars, LegendList, Meter, TimeChart } from './charts.js
 import { SOURCE_LABEL, bytesText, compact, dataOf, durationText, isNum, lastN, num, pctText, relTime, source, sumBy } from './data.js';
 import { sourceStates } from './status.js';
 import { filterLabel } from './filter.js';
+import { actionLabel } from './labels.js';
 import { topServers } from './sectionsA.jsx';
 import { Card, Empty, Pill, Section, Unavailable } from './ui.jsx';
 
@@ -31,13 +32,13 @@ export function AutomationsSection({ snap }) {
           ) : <Unavailable what="Verlauf" />}
         </Card>
         <Card title="Aktivste Abläufe">
-          {h ? <HBars rows={(h.busiest ?? []).slice(0, 5).map((x) => ({ label: x.name, value: x.runs }))} empty={h.busiest == null ? '–' : snap.filter?.keywords?.length ? `Keine Läufe von Abläufen mit ${filterLabel(snap.filter.keywords)} im Namen.` : 'Keine Läufe im Zeitraum.'} /> : <Unavailable />}
+          {h ? <HBars stack rows={(h.busiest ?? []).slice(0, 5).map((x) => ({ label: x.name, value: x.runs }))} empty={h.busiest == null ? '–' : snap.filter?.keywords?.length ? `Keine Läufe von Abläufen mit ${filterLabel(snap.filter.keywords)} im Namen.` : 'Keine Läufe im Zeitraum.'} /> : <Unavailable />}
           <hr className="cp-rule" />
           <h3>Fehleranfälligste Abläufe</h3>
           {h ? (h.most_errors == null
             ? <p className="cp-empty">–</p>
             : h.most_errors.length
-              ? <HBars rows={h.most_errors.slice(0, 5).map((x) => ({ label: x.name, value: x.errors ?? x.count ?? null, color: 'var(--crit)' }))} />
+              ? <HBars stack rows={h.most_errors.slice(0, 5).map((x) => ({ label: x.name, value: x.errors ?? x.count ?? null, color: 'var(--crit)' }))} />
               : <Empty>✓ Keine Fehler im Zeitraum.</Empty>) : <Unavailable />}
         </Card>
         <Card title="Heute">
@@ -206,7 +207,7 @@ export function ActivitySection({ snap, range, compact = false }) {
         return (
           <div className="cp-grid cols-2">
             <Card title="Häufigste Aktionen">
-              {actions ? <HBars rows={actions.map((x) => ({ label: x.action, value: x.count }))} empty="Keine Aktionen protokolliert." /> : <p className="cp-empty">{ok ? '–' : '– gerade nicht verfügbar'}</p>}
+              {actions ? <HBars rows={actions.map((x) => ({ label: actionLabel(x.action), value: x.count }))} empty="Keine Aktionen protokolliert." /> : <p className="cp-empty">{ok ? '–' : '– gerade nicht verfügbar'}</p>}
               {ok && act.data.note && <p className="muted small">{act.data.note}</p>}
             </Card>
             <Card title="Verlauf pro Tag">
