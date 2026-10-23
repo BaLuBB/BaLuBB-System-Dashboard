@@ -5,7 +5,7 @@ import { dataOf, isNum, num, pctText, source } from './data.js';
 import { MaintenanceBars, StatusSection, TodoSection, topServers } from './sectionsA.jsx';
 import { overallStatus } from './status.js';
 import { Card, Pill, Section } from './ui.jsx';
-import { runningSeries, uptimeByServer } from '../history.js';
+import { runningSeries, statusStrips, uptimeByServer } from '../history.js';
 import { filterLabel } from './filter.js';
 
 const emptyTop = (snap) => (snap.filter?.keywords?.length ? `Unter den aktivsten Servern ist keiner mit ${filterLabel(snap.filter.keywords)} im Namen.` : 'Keine Aktivität.');
@@ -43,24 +43,42 @@ export function OverviewSlide({ snap, now }) {
   );
 }
 
-/** Kategorie „Server“: Liste mit Balken, daneben Verfügbarkeit und der Verlauf der laufenden Server. */
+/** Kategorie „Server“: links je Container eine Karte, rechts wie viele laufen und der Zustand der letzten 24 Stunden als Streifen. */
+const STRIP_WORD = { r: 'läuft', s: 'startet', o: 'offline', x: 'anderer Zustand', '-': 'keine Messung' };
+function Strip({ cells }) {
+  return (
+    <div className="tvs-strip" role="img" aria-label="Zustand der letzten 24 Stunden">
+      {[...cells].map((c, i) => <i key={i} data-c={c} title={STRIP_WORD[c]} />)}
+    </div>
+  );
+}
+
 export function ServerSlide({ snap, now }) {
   const hist = snap.history ?? { names: [], points: [] };
+  const items = serverItems(snap);
   const upMap = new Map(uptimeByServer(hist, 86400, now).map((u) => [u.name, u.uptime]));
-  // jeder Dienst steht in der Liste; ohne Verlauf „–“ statt wegzulassen
-  const avail = serverItems(snap).map((s) => ({ label: s.name, value: isNum(upMap.get(s.name)) ? Number(upMap.get(s.name)) : null })).sort((a, z) => (a.value ?? 101) - (z.value ?? 101));
-  const runs = runningSeries(hist);
-  const series = runs.map((p) => ({ date: new Date(p.t * 1000).toISOString().slice(0, 10), running: p.running }));
-  const total = runs.length ? Math.max(...runs.map((p) => p.total)) : null;
+  const strips = new Map(statusStrips(hist, 86400, 48, now).map((x) => [x.name, x.cells]));
+  const running = items.filter((x) => x.state === 'running').length;
+  const rows = [...items].sort((a, z) => String(a.name).localeCompare(String(z.name)));
   return (
     <div className="tv-cols tv-servers">
       <StatusSection snap={snap} now={now} compact />
-      <Section id="verfuegbarkeit" title="Verfügbarkeit und Verlauf" sub="letzte 24 Stunden">
-        <Card title="Verfügbarkeit der letzten 24 Stunden">
-          <HBars rows={avail} max={100} format={(v) => pctText(v, 0)} empty="–" />
+      <Section id="verfuegbarkeit" title="Zustand im Überblick" sub="letzte 24 Stunden">
+        <Card title="Jetzt">
+          <p className="cp-hero"><span className="cp-big">{items.length ? `${running} von ${items.length}` : '–'}</span><span className="cp-unit">Containern laufen</span></p>
         </Card>
-        <Card title="Laufende Server im Verlauf" right={`bis ${num(total)} Server`}>
-          {series.length > 1 ? <TimeChart data={series} series={[{ key: 'running', label: 'Laufende Server', color: 'var(--blue-line)' }]} label="Laufende Server im Verlauf" /> : <p className="cp-empty">– Der Verlauf füllt sich mit jedem Lauf.</p>}
+        <Card title="Zustand der letzten 24 Stunden" right="links ältester, rechts neuester Stand">
+          <div className="tvs-rows">
+            {rows.length === 0 && <p className="cp-empty">–</p>}
+            {rows.map((s) => (
+              <div className="tvs-row" key={s.name}>
+                <span className="n">{s.name ?? '–'}</span>
+                <Strip cells={strips.get(s.name) ?? '-'.repeat(48)} />
+                <span className="p">{pctText(upMap.get(s.name), 0)}</span>
+              </div>
+            ))}
+          </div>
+          <p className="tvs-legend"><i data-c="r" /> läuft <i data-c="s" /> startet <i data-c="o" /> offline <i data-c="-" /> keine Messung · rechts: Anteil „läuft“</p>
         </Card>
       </Section>
     </div>

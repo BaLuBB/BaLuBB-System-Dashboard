@@ -38,3 +38,21 @@ export function uptimeByServer(history, windowS, nowMs = Date.now()) {
 export function runningSeries(history) {
   return history.points.map(([t, row]) => ({ t, running: [...row].filter((c) => c === 'r').length, total: [...row].filter((c) => c !== '-').length }));
 }
+
+const RANK = { o: 4, s: 3, x: 2, r: 1 }; // schlechtester Zustand im Zeitfenster zählt
+
+/** Zustand je Server in gleich langen Zeitfenstern (z. B. 48 x 30 Minuten über 24 Stunden): r läuft, s startet, o offline, x anderes, - keine Messung. */
+export function statusStrips(history, windowS, buckets, nowMs = Date.now()) {
+  const end = Math.floor(nowMs / 1000), start = end - windowS, size = windowS / buckets;
+  return history.names.map((name, i) => {
+    const cells = Array.from({ length: buckets }, () => '-');
+    for (const [t, row] of history.points) {
+      if (t < start || t > end) continue;
+      const b = Math.min(buckets - 1, Math.floor((t - start) / size));
+      const c = row[i] ?? '-';
+      if (c === '-') continue;
+      if (cells[b] === '-' || (RANK[c] ?? 0) > (RANK[cells[b]] ?? 0)) cells[b] = c;
+    }
+    return { name, cells: cells.join('') };
+  });
+}

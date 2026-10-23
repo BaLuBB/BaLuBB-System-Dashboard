@@ -45,7 +45,7 @@ export function computeNotes(snap, now = Date.now()) {
     else if (c.data) {
       const total = c.data.totals?.requests ?? 0;
       const e5 = (c.data.status ?? []).find((s) => s.klass === '5xx')?.requests ?? 0;
-      if (total > 0 && e5 / total > 0.01) add('warn', `${((e5 / total) * 100).toFixed(1).replace('.', ',')} % der Anfragen endeten mit einem 5xx-Serverfehler.`);
+      if (total > 0 && e5 / total > 0.01) add('warn', `${((e5 / total) * 100).toFixed(1).replace('.', ',')} % der Website-Anfragen (Cloudflare${Array.isArray(c.data.days) && c.data.days.length ? `, letzte ${c.data.days.length} Tage` : ''}) endeten mit einem Serverfehler (5xx).`);
     }
   }
   return notes.sort((a, z) => ORDER[a.level] - ORDER[z.level]);
