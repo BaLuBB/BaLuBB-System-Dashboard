@@ -367,3 +367,37 @@ body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger 
 
 /* Laufzeit je Container auch auf dem Fernseher */
 .cp-tv .cp-srv .up.since { display: block; font-size: .85rem; }
+
+
+/* Server-Seite (Fernseher): Container-Karten und Zustandsstreifen */
+.cp-tv .tv-containers { display: grid; gap: 12px; align-content: start; }
+.tvc { border: 1px solid var(--line-soft); border-radius: 14px; padding: 12px 16px 14px; background: rgba(255,255,255,.02); }
+.tvc[data-state="crit"] { border-color: var(--crit); } .tvc[data-state="warn"] { border-color: var(--warn); }
+.tvc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; min-width: 0; }
+.tvc-head .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--ok); flex: none; box-shadow: 0 0 0 4px var(--ok-tint); }
+.tvc[data-state="crit"] .dot { background: var(--crit); box-shadow: 0 0 0 4px var(--crit-tint); } .tvc[data-state="warn"] .dot { background: var(--warn); box-shadow: 0 0 0 4px var(--warn-tint); }
+.tvc-head .name { font-size: 1.35rem; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tvc-head .since { margin-left: auto; color: var(--muted); font-size: .95rem; white-space: nowrap; }
+.tvc-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
+.tvc-gauge { display: grid; grid-template-rows: auto auto auto auto; gap: 4px; min-width: 0; }
+.tvc-gauge .lab { color: var(--muted); font-size: .85rem; letter-spacing: .02em; }
+.tvc-gauge .big { font-size: 1.7rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tvc-gauge .big.sm { font-size: 1.05rem; font-family: var(--font-mono); font-weight: 500; }
+.tvc-gauge .track { height: 10px; border-radius: 6px; background: var(--line-soft); overflow: hidden; }
+.tvc-gauge .fill { height: 100%; border-radius: 6px; background: var(--blue-line); }
+.tvc-gauge .fill[data-tone="warn"] { background: var(--warn); } .tvc-gauge .fill[data-tone="crit"] { background: var(--crit); }
+.tvc-gauge .det { color: var(--muted); font-size: .85rem; font-family: var(--font-mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tvc-gauge.net { grid-template-rows: auto auto auto auto; align-content: start; }
+.tvs-rows { display: grid; gap: 26px; margin-top: 8px; }
+.tvs-row { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) 4.5rem; gap: 14px; align-items: center; }
+.tvs-row .n { font-size: 1.15rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tvs-row .p { text-align: right; font-family: var(--font-mono); font-size: 1.3rem; }
+.tvs-strip { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; height: 46px; }
+.tvs-strip i, .tvs-legend i { display: block; border-radius: 3px; background: var(--line); }
+.tvs-strip i[data-c="r"], .tvs-legend i[data-c="r"] { background: var(--ok); }
+.tvs-strip i[data-c="s"], .tvs-legend i[data-c="s"] { background: var(--warn); }
+.tvs-strip i[data-c="o"], .tvs-legend i[data-c="o"] { background: var(--crit); }
+.tvs-strip i[data-c="x"] { background: var(--maint); }
+.tvs-legend { color: var(--muted); font-size: 1rem; margin: 22px 0 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tvs-legend i { width: 16px; height: 16px; display: inline-block; }
+.cp-tv .tv-servers .cp-hero .cp-big { font-size: 3rem; }

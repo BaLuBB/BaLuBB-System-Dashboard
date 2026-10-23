@@ -66,6 +66,57 @@ const usedOfLimit = (m) => {
   return limit ? `${used} / ${limit}` : used;
 };
 
+
+/** Anzeige für den Fernseher: je Container eine Karte mit Name, Zustand, Laufzeit und vier gleich aufgebauten Feldern. */
+function Gauge({ label, pct, big, detail }) {
+  const known = isNum(pct);
+  const tone = !known ? undefined : pct >= 92 ? 'crit' : pct >= 80 ? 'warn' : undefined;
+  return (
+    <div className="tvc-gauge">
+      <span className="lab">{label}</span>
+      <b className="big">{big}</b>
+      <div className="track" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={known ? Math.round(pct) : undefined}>
+        <div className="fill" data-tone={tone} style={{ width: `${known ? Math.min(100, Math.max(0, pct)) : 0}%` }} />
+      </div>
+      <span className="det">{detail}</span>
+    </div>
+  );
+}
+
+const vonLimit = (m) => {
+  const used = bytesText(m?.used_bytes);
+  return isNum(m?.limit_mb) && Number(m.limit_mb) > 0 ? `${used} von ${bytesText(mbToBytes(m.limit_mb))}` : `${used}, ohne Grenze`;
+};
+
+function ContainerCard({ s }) {
+  const [state, word] = SERVER_STATE[s.state] ?? ['warn', s.state];
+  const memPct = s.memory ? pctOf(s.memory.used_bytes, mbToBytes(s.memory.limit_mb)) : null;
+  const diskPct = s.disk ? pctOf(s.disk.used_bytes, mbToBytes(s.disk.limit_mb)) : null;
+  const cpu = isNum(s.cpu_percent) ? Number(s.cpu_percent) : null;
+  return (
+    <div className="tvc" data-state={state}>
+      <div className="tvc-head">
+        <i className="dot" aria-hidden="true" />
+        <b className="name">{s.name ?? '–'}</b>
+        {s.suspended && <Pill state="warn">gesperrt</Pill>}
+        <Pill state={state}>{word}</Pill>
+        <span className="since">{s.state === 'running' ? `läuft seit ${isNum(s.uptime_seconds) ? durationText(s.uptime_seconds) : '–'}` : ''}</span>
+      </div>
+      <div className="tvc-grid">
+        <Gauge label="Prozessor" pct={cpu} big={cpu == null ? '–' : `${Math.round(cpu)} %`} detail="Auslastung" />
+        <Gauge label="Arbeitsspeicher" pct={memPct} big={memPct == null ? '–' : `${Math.round(memPct)} %`} detail={vonLimit(s.memory)} />
+        <Gauge label="Speicherplatz" pct={diskPct} big={diskPct == null ? bytesText(s.disk?.used_bytes) : `${Math.round(diskPct)} %`} detail={diskPct == null ? 'ohne Grenze' : vonLimit(s.disk)} />
+        <div className="tvc-gauge net">
+          <span className="lab">Netzwerk (gesamt)</span>
+          <b className="big sm">↓ {bytesText(s.network?.rx_bytes)}</b>
+          <b className="big sm">↑ {bytesText(s.network?.tx_bytes)}</b>
+          <span className="det">empfangen und gesendet</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function StatusSection({ snap, now, compact = false }) {
   const st = overallStatus(snap, now);
   const serversSrc = source(snap, 'servers');
@@ -89,6 +140,11 @@ export function StatusSection({ snap, now, compact = false }) {
         )}
         <hr className="cp-rule" />
         {!serversSrc.available && !health ? <Unavailable what="Server" /> : items.length === 0 ? <Empty>{filtered(snap) ? `Kein Dienst mit ${filtered(snap)} im Namen gefunden.` : 'Es sind keine Server hinterlegt.'}</Empty> : (
+          compact ? (
+            <div className="tv-containers">
+              {[...items].sort((a, z) => ({ offline: 0, starting: 1, running: 2 }[a.state] ?? 3) - ({ offline: 0, starting: 1, running: 2 }[z.state] ?? 3) || String(a.name).localeCompare(String(z.name))).map((s) => <ContainerCard key={s.name} s={s} />)}
+            </div>
+          ) : (
           <div className="cp-servers">
             {[...items].sort((a, z) => ({ offline: 0, starting: 1, running: 2 }[a.state] ?? 3) - ({ offline: 0, starting: 1, running: 2 }[z.state] ?? 3) || a.name.localeCompare(z.name)).map((s) => {
               const [state, word] = SERVER_STATE[s.state] ?? ['warn', s.state];
@@ -108,6 +164,7 @@ export function StatusSection({ snap, now, compact = false }) {
               );
             })}
           </div>
+          )
         )}
       </div>
     </Section>

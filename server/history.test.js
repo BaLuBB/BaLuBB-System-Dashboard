@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { appendPoint, emptyHistory, uptimeByServer, runningSeries, MAX_AGE_S } from '../client/src/history.js';
+import { appendPoint, emptyHistory, uptimeByServer, runningSeries, statusStrips, MAX_AGE_S } from '../client/src/history.js';
 
 const api = (...pairs) => ({ data: { servers: { items: pairs.map(([name, state]) => ({ name, state })) } } });
 const T0 = Date.UTC(2026, 9, 21, 12, 0, 0);
@@ -28,4 +28,11 @@ test('Uptime: nur bekannte Messpunkte zählen, Serien für das Diagramm', () => 
   assert.equal(u.B.uptime, 100);
   assert.equal(u.B.samples, 2);
   assert.deepEqual(runningSeries(h).map((p) => p.running), [1, 1, 2]);
+});
+
+test('Streifen: je Zeitfenster der schlechteste Zustand, ohne Messung bleibt „-“', () => {
+  const h = { names: ['A', 'B'], points: [[1000, 'rr'], [1100, 'ro'], [1500, 'r-'], [2000, 'sr']] };
+  const strips = statusStrips(h, 1000, 4, 2000 * 1000);
+  assert.equal(strips[0].cells, 'r-rs', 'A: läuft, keine Messung, läuft, startet');
+  assert.equal(strips[1].cells, 'o--r', 'B: im ersten Fenster einmal offline (schlechtester Zustand zählt), dann keine Messung, dann läuft');
 });
