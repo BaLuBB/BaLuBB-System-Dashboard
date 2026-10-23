@@ -421,15 +421,10 @@ body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger 
 .cp-tv .cp-lastruns { gap: 12px; }
 .cp-tv .cp-lastruns li { flex-direction: column; gap: 2px; }
 .cp-tv .cp-lastruns li > span:first-child { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
-<<<<<<< HEAD
-/* Dauerhafter Filter-Hinweis */
-.cp-tv .tv-title .tv-filter { margin-top: 2px; font-size: .9rem; color: var(--muted); max-width: 62rem; line-height: 1.25; }
-.cp-header .cp-filter { margin: 4px 0 0; font-size: .85rem; color: var(--muted); max-width: 52rem; }
 
 /* Diagnose-Ansicht (?debug=1) */
 .cp-debug { position: fixed; left: 8px; bottom: 8px; z-index: 99; max-width: min(34rem, 96vw); max-height: 60vh; overflow: auto; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(0, 0, 0, .85); color: #eff2f5; font: 12px/1.35 ui-monospace, monospace; }
 .cp-debug dl { margin: 4px 0; display: grid; gap: 1px; } .cp-debug dl > div { display: grid; grid-template-columns: 11rem 1fr; gap: 8px; } .cp-debug dt { color: #a0a5ac; } .cp-debug dd { margin: 0; } .cp-debug pre { margin: 4px 0 0; white-space: pre-wrap; color: #a0a5ac; }
-=======
 
 /* Balken: Säulen wachsen von unten nach oben, waagerechte Balken erscheinen Zeile für Zeile von der untersten nach oben */
 @media (prefers-reduced-motion: no-preference) {
