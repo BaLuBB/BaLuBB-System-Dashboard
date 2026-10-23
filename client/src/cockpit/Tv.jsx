@@ -128,6 +128,14 @@ export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' 
   const at = idx % slides.length, cur = slides[at];
   // Jede Seite wird so weit vergrößert, wie sie in die Bühne passt: besser lesbar auf dem Fernseher
   const outer = useRef(null), inner = useRef(null);
+  // Jede Kachel fährt auf ihre eigene Art ein (von unten, links, rechts, oben, gezoomt, gekippt), nacheinander in Lesereihenfolge
+  useLayoutEffect(() => {
+    const root = outer.current;
+    if (!root) return;
+    const KINDS = ['rise', 'left', 'zoom', 'right', 'drop', 'tilt'];
+    const tiles = [...root.querySelectorAll('.cp-card, .tvc')].filter((el) => !el.parentElement?.closest('.cp-card, .tvc'));
+    tiles.forEach((el, i) => { el.dataset.anim = KINDS[(i + at) % KINDS.length]; el.style.setProperty('--d', `${Math.min(i * 0.12, 1.2)}s`); });
+  }, [at]);
   const [zoom, setZoom] = useState(1);
   useLayoutEffect(() => {
     const fit = () => {
