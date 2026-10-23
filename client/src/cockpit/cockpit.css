@@ -421,6 +421,12 @@ body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger 
 .cp-tv .cp-lastruns { gap: 12px; }
 .cp-tv .cp-lastruns li { flex-direction: column; gap: 2px; }
 .cp-tv .cp-lastruns li > span:first-child { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
-/* Dauerhafter Filter-Hinweis */
-.cp-tv .tv-title .tv-filter { margin-top: 2px; font-size: .9rem; color: var(--muted); max-width: 62rem; line-height: 1.25; }
-.cp-header .cp-filter { margin: 4px 0 0; font-size: .85rem; color: var(--muted); max-width: 52rem; }
+
+/* Balken: Säulen wachsen von unten nach oben, waagerechte Balken erscheinen Zeile für Zeile von der untersten nach oben */
+@media (prefers-reduced-motion: no-preference) {
+  .cp-hbar { animation: cp-rowup .6s cubic-bezier(.2, .7, .2, 1) calc(.1s + var(--up, 0) * .1s) both; }
+  .cp .cp-hbar .bar { animation-delay: calc(.25s + var(--up, 0) * .1s); }
+  .cp .cp-chart svg .col, .cp-tv .cp-chart svg .col { transform-box: fill-box; transform-origin: 50% 100%; clip-path: none; animation: cp-barup .9s cubic-bezier(.2, .7, .2, 1) calc(.2s + var(--i, 0) * .05s) both; }
+}
+@keyframes cp-rowup { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.cp .cp-chart svg .col path, .cp .cp-chart svg .col rect, .cp-tv .cp-chart svg .col path, .cp-tv .cp-chart svg .col rect { animation: none; clip-path: none; transform: none; }

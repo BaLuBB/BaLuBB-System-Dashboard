@@ -175,9 +175,9 @@ export function Columns({ data, series, height = 170, label }) {
               <g key={d.date ?? i} onPointerEnter={() => setHover(i)} opacity={hover == null || hover === i ? 1 : 0.55}>
                 <rect x={padL + band * i} y={padT} width={band} height={plotH} fill="transparent" />
                 {d.values.every((v) => !isNum(v)) && <rect x={x} y={Y(0) - 2} width={bw} height={2} fill="var(--muted)" opacity="0.6"><title>keine Daten</title></rect>}
-                {segs.map((g, idx) => idx === segs.length - 1
+                <g className="col" style={{ '--i': i }}>{segs.map((g, idx) => idx === segs.length - 1
                   ? <path key={g.k} d={topPath(x, g.y, bw, g.h)} fill={series[g.k].color} />
-                  : <rect key={g.k} x={x} y={g.y} width={bw} height={g.h} fill={series[g.k].color} />)}
+                  : <rect key={g.k} x={x} y={g.y} width={bw} height={g.h} fill={series[g.k].color} />)}</g>
               </g>
             );
           })}
@@ -199,12 +199,12 @@ export function HBars({ rows, stack = false, format = num, color = 'var(--blue-l
   const top = max ?? Math.max(1, ...rows.filter((r) => isNum(r.value)).map((r) => Number(r.value)));
   return (
     <div className={`cp-hbars${stack ? ' stack' : ''}`} role="list">
-      {rows.map((r) => {
+      {rows.map((r, idx) => {
         const known = isNum(r.value); // fehlender Wert: kein Balken, nur „–“
         const p = known ? Math.max(0, Math.min(100, (Number(r.value) / top) * 100)) : 0;
         const inside = known && p > 82;
         return (
-          <div className="cp-hbar" role="listitem" key={r.label} title={`${r.label}: ${known ? format(r.value) : '–'}`}>
+          <div className="cp-hbar" role="listitem" key={r.label} style={{ '--up': rows.length - 1 - idx }} title={`${r.label}: ${known ? format(r.value) : '–'}`}>
             <span className="label">{r.label}</span>
             <span className="track">
               {known && <span className="bar" style={{ width: `${p}%`, background: r.color ?? color }} />}
