@@ -27,7 +27,8 @@ test('Selbstheilung: neue Version erkennen, festhängende Seite neu laden, aber 
   assert.equal(isOutdatedCode('aaa', undefined), false, 'alter Snapshot ohne Kennung');
   const g = new Date(t('40:00')).toISOString();
   assert.equal(isStuck(g, t('45:00'), 2, 0), false, '5 Minuten ohne neuen Stand sind noch normal');
-  assert.equal(isStuck(g, t('51:00'), 2, 0), true, 'über 10 Minuten ohne neuen Stand');
-  assert.equal(isStuck(g, t('51:00'), 2, t('48:00')), false, 'gerade erst neu geladen: erst nach 5 Minuten wieder');
+  assert.equal(isStuck(g, t('47:30'), 2, 0), true, 'über 6 Minuten ohne neuen Stand');
+  assert.equal(isStuck(g, t('51:00'), 2, t('49:00')), false, 'gerade erst neu geladen: erst nach 3 Minuten wieder');
+  assert.equal(isStuck(g, t('51:00'), 2, t('47:00')), true, 'nach 3 Minuten darf wieder neu geladen werden');
   assert.equal(isStuck('kaputt', t('51:00'), 2, 0), true);
 });

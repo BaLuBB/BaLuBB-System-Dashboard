@@ -5,6 +5,7 @@ import Tv, { TvMessage } from './cockpit/Tv.jsx';
 import { decryptJson } from './crypto.js';
 import { readOptions, tvLink } from './tvmode.js';
 import { isBehind, isOutdatedCode, isStuck, RELOAD_GAP_MS } from './slot.js';
+import { DEBUG, DebugPanel, dbg, note, noteSnapshot, pickHeaders } from './debug.jsx';
 
 const RETRY_MS = 30 * 1000;
 const opts = readOptions();
@@ -18,6 +19,7 @@ const store = {
   clear: () => { try { localStorage.removeItem(KEY); } catch { /* ignorieren */ } },
 };
 const BUILD_ID = typeof __BUILD_ID__ === 'string' ? __BUILD_ID__ : 'dev';
+dbg.build = BUILD_ID;
 // Sauberes Neuladen (neue Version oder festhängende Seite): Adresse mit eigener Kennung, damit kein alter Zwischenspeicher die alte Seite liefert; höchstens alle paar Minuten
 function reloadClean(tag) {
   try {
@@ -38,8 +40,10 @@ const SNAPSHOT_PATH = '../snapshot.enc.json';
 const snapshotUrl = () => { try { return new URL(SNAPSHOT_PATH, import.meta.url).href; } catch { return './snapshot.enc.json'; } };
 
 async function load(password) {
-  const res = await fetch(`${snapshotUrl()}?t=${Date.now()}`, { cache: 'no-store' });
-  if (!res.ok) throw new Error('Noch kein Snapshot veröffentlicht');
+  const t0 = Date.now();
+  const res = await fetch(`${snapshotUrl()}?t=${t0}`, { cache: 'no-store' });
+  dbg.fetch = { at: t0, ms: Date.now() - t0, status: res.status, headers: pickHeaders(res.headers) };
+  if (!res.ok) { note(`Abruf: HTTP ${res.status}`); throw new Error('Noch kein Snapshot veröffentlicht'); }
   try {
     return await decryptJson(await res.json(), password);
   } catch {
@@ -49,6 +53,10 @@ async function load(password) {
 
 /** Statische GitHub-Pages-Variante: Daten liegen verschlüsselt vor und werden erst im Browser entschlüsselt. */
 export default function StaticApp() {
+  return <><StaticInner />{DEBUG && <DebugPanel />}</>;
+}
+
+function StaticInner() {
   useTheme(); // setzt Hell/Dunkel (Standard dunkel)
   const [password, setPassword] = useState('');
   const [input, setInput] = useState('');
@@ -60,8 +68,12 @@ export default function StaticApp() {
   const [remember, setRemember] = useState(true);
 
   const refresh = useCallback(async (pw) => {
-    try { const next = await load(pw); if (isOutdatedCode(BUILD_ID, next.app) && reloadClean('n')) return next; setSnap(next); setError(null); setLostSince(null); return next; }
-    catch (e) { setError(e.message); setLostSince((t) => t ?? Date.now()); return null; }
+    try {
+      const next = await load(pw);
+      noteSnapshot(next); note(`Stand ${next.generatedAt?.slice(11, 16)} UTC geladen`);
+      if (isOutdatedCode(BUILD_ID, next.app) && reloadClean('n')) { note('neuer Code: lade neu'); return next; }
+      setSnap(next); setError(null); setLostSince(null); return next;
+    } catch (e) { note(`Fehler: ${e.message}`); setError(e.message); setLostSince((t) => t ?? Date.now()); return null; }
   }, []);
 
   // Automatische Anmeldung mit dem Passwort aus dem Link (#pw=...) oder aus dem Browser-Speicher
@@ -99,7 +111,7 @@ export default function StaticApp() {
       last.current = { ...last.current, at: Date.now(), busy: true };
       let next = null;
       try { next = await refresh(pw); if (next && !password) setPassword(pw); }
-      finally { last.current = { at: Date.now(), busy: false, misses: next && next.generatedAt === before ? last.current.misses + 1 : next ? 0 : last.current.misses + 1 }; }
+      finally { last.current = { at: Date.now(), busy: false, misses: next && next.generatedAt === before ? last.current.misses + 1 : next ? 0 : last.current.misses + 1 }; dbg.misses = last.current.misses; }
     };
     const check = () => {
       if (snap && document.visibilityState !== 'hidden' && isStuck(snap.generatedAt, Date.now(), snap.intervalMin, Number(safeSession() ?? 0)) && reloadClean('s')) return;

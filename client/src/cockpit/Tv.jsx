@@ -160,7 +160,8 @@ export default function Tv({ snap, connLostSince, slideSec = 20, theme = 'dark' 
             <div className="tv-title">
               <h1>BaLuBB System</h1>
               <p className="muted"><span className="live" aria-hidden="true" />Stand {clock(Date.parse(snap.generatedAt))} Uhr
-                {connLostSince && <span className="tv-lost"> · Verbindung gestört seit {clock(connLostSince)}, zeige letzte Daten</span>}</p>
+                {connLostSince && <span className="tv-lost"> · Verbindung gestört seit {clock(connLostSince)}, zeige letzte Daten</span>}
+                {!connLostSince && now - Date.parse(snap.generatedAt) > 6 * 60_000 && <span className="tv-lost"> · Daten sind {Math.round((now - Date.parse(snap.generatedAt)) / 60_000)} Min. alt, Aktualisierung hängt</span>}</p>
               {filterHint(snap) && <p className="tv-filter">Filter: {filterHint(snap)}</p>}
             </div>
             <div className="tv-state" data-state={st.state}><Pill state={st.state} /><span className="sentence">{st.text}</span></div>
