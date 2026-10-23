@@ -58,7 +58,7 @@ const history = items ? appendPoint(base, { data: { servers: { items } } }) : ba
 
 // Stand = Beginn des Intervalls (bei 2 Minuten eine gerade Minute); builtAt ist der echte Zeitpunkt des Abrufs
 const builtAt = Date.now();
-const snapshot = { generatedAt: new Date(slotStart(builtAt, INTERVAL_MIN)).toISOString(), builtAt: new Date(builtAt).toISOString(), intervalMin: INTERVAL_MIN, filter: { keywords }, balubb, cloudflare, history };
+const snapshot = { generatedAt: new Date(slotStart(builtAt, INTERVAL_MIN)).toISOString(), builtAt: new Date(builtAt).toISOString(), app: process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 12) : 'dev', intervalMin: INTERVAL_MIN, filter: { keywords }, balubb, cloudflare, history };
 await mkdir(out, { recursive: true });
 await writeFile(`${out}/snapshot.enc.json`, JSON.stringify(await encryptJson(snapshot, password)));
 
