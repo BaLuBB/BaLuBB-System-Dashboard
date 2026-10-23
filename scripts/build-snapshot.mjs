@@ -60,7 +60,11 @@ const history = items ? appendPoint(base, { data: { servers: { items } } }) : ba
 const builtAt = Date.now();
 const snapshot = { generatedAt: new Date(slotStart(builtAt, INTERVAL_MIN)).toISOString(), builtAt: new Date(builtAt).toISOString(), app: process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 12) : 'dev', intervalMin: INTERVAL_MIN, filter: { keywords }, balubb, cloudflare, history };
 await mkdir(out, { recursive: true });
-await writeFile(`${out}/snapshot.enc.json`, JSON.stringify(await encryptJson(snapshot, password)));
+const encrypted = JSON.stringify(await encryptJson(snapshot, password));
+await writeFile(`${out}/snapshot.enc.json`, encrypted);
+// dieselben Daten unter einem Namen je Intervall (siehe client/src/slot.js, slotFileFor): umgeht einen veralteten Zwischenspeicher
+await mkdir(`${out}/s`, { recursive: true });
+await writeFile(`${out}/s/${slotStart(builtAt, INTERVAL_MIN)}.json`, encrypted);
 
 const sources = Object.values(balubb.sources ?? {});
 const okCount = sources.filter((s) => s.available).length;

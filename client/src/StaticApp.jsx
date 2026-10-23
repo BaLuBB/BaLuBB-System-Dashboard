@@ -4,7 +4,7 @@ import Cockpit, { Loading, useTheme } from './cockpit/Cockpit.jsx';
 import Tv, { TvMessage } from './cockpit/Tv.jsx';
 import { decryptJson } from './crypto.js';
 import { readOptions, tvLink } from './tvmode.js';
-import { isBehind, isOutdatedCode, isStuck, RELOAD_GAP_MS } from './slot.js';
+import { isBehind, isOutdatedCode, isStuck, RELOAD_GAP_MS, slotFileFor } from './slot.js';
 import { DEBUG, DebugPanel, dbg, note, noteSnapshot, pickHeaders } from './debug.jsx';
 
 const RETRY_MS = 30 * 1000;
@@ -37,12 +37,27 @@ const candidate = opts.pw || store.get(); // Link-Passwort gewinnt und überschr
 
 // Der Snapshot liegt an der Wurzel der Seite, die Skripte unter assets/: so findet ihn auch die Seite /tv/
 const SNAPSHOT_PATH = '../snapshot.enc.json';
+// Wurzel der Seite als Adresse; der Pfad steht in einer Konstante, sonst deutet Vite new URL(…, import.meta.url) als Bilddatei um
+const ROOT_PATH = '../';
+const siteRootUrl = () => { try { return new URL(ROOT_PATH, import.meta.url).href; } catch { return './'; } };
 const snapshotUrl = () => { try { return new URL(SNAPSHOT_PATH, import.meta.url).href; } catch { return './snapshot.enc.json'; } };
 
-async function load(password) {
+async function get(url, kind) {
   const t0 = Date.now();
-  const res = await fetch(`${snapshotUrl()}?t=${t0}`, { cache: 'no-store' });
-  dbg.fetch = { at: t0, ms: Date.now() - t0, status: res.status, headers: pickHeaders(res.headers) };
+  const res = await fetch(url, { cache: 'no-store' });
+  dbg.fetch = { at: t0, ms: Date.now() - t0, status: res.status, kind, headers: pickHeaders(res.headers) };
+  return res;
+}
+
+async function load(password) {
+  // Zuerst die Datei dieses Intervalls (nie zuvor abgerufen, also nie veraltet aus einem Zwischenspeicher), sonst die feste Datei
+  let res = null;
+  try {
+    const url = siteRootUrl() + slotFileFor(Date.now(), dbg.snap?.intervalMin ?? 2);
+    const r = await get(url, 'Intervall-Datei');
+    if (r.ok) res = r; else note(`Intervall-Datei: HTTP ${r.status}, nehme feste Datei`);
+  } catch { /* Netz oder Adresse: weiter mit der festen Datei */ }
+  if (!res) res = await get(`${snapshotUrl()}?t=${Date.now()}`, 'feste Datei');
   if (!res.ok) { note(`Abruf: HTTP ${res.status}`); throw new Error('Noch kein Snapshot veröffentlicht'); }
   try {
     return await decryptJson(await res.json(), password);
