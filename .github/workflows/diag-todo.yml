@@ -1,0 +1,24 @@
+name: Diag Todo
+on:
+  push:
+    branches: [claude/diag-todo]
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Zaehlung ohne Namen
+        env:
+          BALUBB_API_KEY: ${{ secrets.BALUBB_API_KEY }}
+        run: |
+          H="Authorization: Bearer $BALUBB_API_KEY"; B=https://bot.balubb.de/api/ext/v1
+          M='test("balubb|bot";"i")'
+          curl -sS -H "$H" "$B/activations" -o a.json
+          echo "activations Felder: $(jq -r 'keys|join(",")' a.json)"
+          echo "activations: pending_count=$(jq '.pending_count' a.json) Liste=$(jq '(.pending//[])|length' a.json) davon_passend=$(jq "[(.pending//[])[]|select(((.server//.server_name//.guild_name//.guild//.name)//\"\")|$M)]|length" a.json) ohne_Name=$(jq '[(.pending//[])[]|select(((.server//.server_name//.guild_name//.guild//.name)//"")=="")]|length' a.json)"
+          echo "eintrag-Felder: $(jq -r '(.pending//[])[0]|keys|join(",")' a.json 2>/dev/null)"
+          curl -sS -H "$H" "$B/feedback?days=90" -o f.json
+          echo "feedback: new_count=$(jq '.new_count' f.json) Liste=$(jq '(.new//[])|length' f.json) davon_passend=$(jq "[(.new//[])[]|select(((.server//.server_name//.guild_name//.guild//.name)//\"\")|$M)]|length" f.json)"
+          curl -sS -H "$H" "$B/custom-bot-requests" -o c.json
+          echo "custom-bot-requests: open_count=$(jq '.open_count' c.json) Liste=$(jq '(.open//[])|length' c.json) davon_passend=$(jq "[(.open//[])[]|select(((.server//.server_name//.guild_name//.guild//.name)//\"\")|$M)]|length" c.json)"
+          curl -sS -H "$H" "$B/overview" -o o.json
+          echo "overview.to_do: $(jq -c '.to_do' o.json)"
