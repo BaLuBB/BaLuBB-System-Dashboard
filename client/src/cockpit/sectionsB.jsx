@@ -3,7 +3,7 @@ import { Columns, Donut, HBars, LegendList, Meter, TimeChart } from './charts.js
 import { SOURCE_LABEL, bytesText, compact, dataOf, durationText, isNum, lastN, num, pctText, relTime, source, sumBy } from './data.js';
 import { sourceStates } from './status.js';
 import { filterLabel } from './filter.js';
-import { actionLabel } from './labels.js';
+import { actionLabel, countryLabel, humanKey, pathLabel } from './labels.js';
 import { topServers } from './sectionsA.jsx';
 import { Card, Empty, Pill, Section, Unavailable } from './ui.jsx';
 
@@ -241,8 +241,8 @@ export function ReleasesSection({ snap, limit = 6, compact = false }) {
 }
 
 /* ---------- Cloudflare ---------- */
-const ACTION = { block: 'Blockiert', managed_challenge: 'Prüfung (Challenge)', challenge: 'Prüfung (Challenge)', js_challenge: 'Prüfung (JS)', log: 'Nur protokolliert', allow: 'Erlaubt', skip: 'Übersprungen', jschallenge: 'Prüfung (JS)' };
-const THREAT = { Bot: 'Bots', Anonymizer: 'Anonymisierer', 'Search Engine': 'Suchmaschinen', 'Known Bot': 'Bekannte Bots' };
+const ACTION = { block: 'Blockiert', managed_challenge: 'Prüfung (Challenge)', challenge: 'Prüfung (Challenge)', js_challenge: 'Prüfung (JS)', log: 'Nur protokolliert', allow: 'Erlaubt', skip: 'Übersprungen', jschallenge: 'Prüfung (JS)', unknown: 'Nicht eingeordnet', link_maze_injected: 'Labyrinth-Falle für Crawler', bypass: 'Durchgelassen', rewrite: 'Umgeschrieben' };
+const THREAT = { Bot: 'Bots', Anonymizer: 'Anonymisierer', 'Search Engine': 'Suchmaschinen', 'Known Bot': 'Bekannte Bots', 'hot.ban.unknown': 'Gesperrte Adresse (Grund nicht angegeben)', unknown: 'Nicht eingeordnet' };
 const CODE = { '2xx': ['var(--ok)', '✓', 'Erfolg 2xx'], '3xx': ['var(--blue-line)', '→', 'Umleitung 3xx'], '4xx': ['var(--warn)', '▲', 'Client 4xx'], '5xx': ['var(--crit)', '✕', 'Server 5xx'] };
 
 export function CloudflareSection({ snap, range }) {
@@ -271,19 +271,19 @@ export function CloudflareSection({ snap, range }) {
             data={(d.status ?? []).map((s) => ({ label: CODE[s.klass]?.[2] ?? s.klass, value: s.requests, color: CODE[s.klass]?.[0] ?? 'var(--muted)', icon: CODE[s.klass]?.[1] }))} />
         </Card>
         <Card title="Länder und Seiten">
-          <HBars rows={d.countries.slice(0, 6).map((x) => ({ label: x.country, value: x.requests }))} empty="Keine Daten." />
+          <HBars rows={d.countries.slice(0, 6).map((x) => ({ label: countryLabel(x.country), value: x.requests }))} empty="Keine Daten." />
           <hr className="cp-rule" />
           <h3>Top-Pfade (24 h)</h3>
-          {d.paths ? <HBars rows={d.paths.slice(0, 6).map((p) => ({ label: p.path, value: p.requests }))} /> : <Unavailable />}
+          {d.paths ? <HBars rows={d.paths.slice(0, 6).map((p) => ({ label: pathLabel(p.path), value: p.requests }))} /> : <Unavailable />}
           {d.paths && <p className="muted small">Aufrufe der API darunter: <b className="mono">{num(apiCalls)}</b></p>}
         </Card>
         <Card title="Sicherheit" right={`${num(d.totals.threats)} Bedrohungen · ${d.days.length} Tage`}>
           {sec && <h3>Maßnahmen (24 h)</h3>}
           {sec ? (handled.length
-            ? <HBars rows={handled.map((a) => ({ label: ACTION[a.action] ?? a.action, value: a.requests, color: 'var(--warn)' }))} />
+            ? <HBars rows={handled.map((a) => ({ label: ACTION[a.action] ?? humanKey(a.action), value: a.requests, color: 'var(--warn)' }))} />
             : <Empty>✓ Cloudflare musste keine Anfragen blockieren oder prüfen.</Empty>) : <Unavailable />}
           <hr className="cp-rule" /><h3>Bedrohungsarten ({d.days.length} Tage)</h3>
-          {Array.isArray(d.threatTypes) ? <HBars rows={d.threatTypes.slice(0, 5).map((x) => ({ label: THREAT[x.type] ?? x.type, value: x.requests }))} empty="✓ Keine Bedrohungen." /> : <p className="cp-empty">–</p>}
+          {Array.isArray(d.threatTypes) ? <HBars rows={d.threatTypes.slice(0, 5).map((x) => ({ label: THREAT[x.type] ?? humanKey(x.type), value: x.requests }))} empty="✓ Keine Bedrohungen." /> : <p className="cp-empty">–</p>}
         </Card>
         <Card title="Anfragen je Stunde (24 h)">
           {d.hourly ? <Columns data={d.hourly.map((x) => ({ date: x.t.slice(0, 10), values: [x.cached, Math.max(0, x.requests - x.cached)] }))} series={[{ label: 'Aus dem Cache', color: 'var(--blue-line)' }, { label: 'Vom Ursprung', color: 'var(--muted)' }]} label="Anfragen je Stunde" /> : <Unavailable />}
@@ -292,7 +292,7 @@ export function CloudflareSection({ snap, range }) {
           {!d.web ? <Unavailable /> : !d.web.enabled ? <Empty>Noch keine Besucherdaten. In Cloudflare unter Web-Analytics die Website aktivieren, die Zahlen erscheinen dann automatisch.</Empty> : (
             <>
               <p className="cp-hero"><span className="cp-big">{num(d.web.visits)}</span><span className="cp-unit">Besuche · {num(d.web.pageloads)} Seitenaufrufe</span></p>
-              <HBars rows={d.web.pages.slice(0, 6).map((p) => ({ label: p.path, value: p.pageloads }))} />
+              <HBars rows={d.web.pages.slice(0, 6).map((p) => ({ label: pathLabel(p.path), value: p.pageloads }))} />
             </>
           )}
         </Card>

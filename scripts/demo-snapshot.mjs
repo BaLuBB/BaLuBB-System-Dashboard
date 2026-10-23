@@ -79,10 +79,10 @@ const cloudflare = { configured: true, fetchedAt: iso(now - 2 * 60e3), data: {
   totals: { requests: cfDays.reduce((a, d) => a + d.requests, 0), cached: 36000, bytes: 2.4e9, cachedBytes: 1.2e9, threats: 142, pageViews: 9000, cacheRate: 52 }, days: cfDays,
   status: [{ klass: '2xx', requests: 52000 }, { klass: '3xx', requests: 2100 }, { klass: '4xx', requests: 2600 }, { klass: '5xx', requests: 130 }],
   countries: [{ country: 'DE', requests: 41000 }, { country: 'US', requests: 8000 }, { country: 'AT', requests: 3100 }, { country: 'NL', requests: 2500 }, { country: 'CH', requests: 1800 }],
-  browsers: [{ browser: 'Chrome', pageViews: 5000 }], threatTypes: [{ type: 'Bot', requests: 90 }, { type: 'Anonymizer', requests: 40 }],
+  browsers: [{ browser: 'Chrome', pageViews: 5000 }], threatTypes: [{ type: 'Bot', requests: 90 }, { type: 'Anonymizer', requests: 40 }, { type: 'hot.ban.unknown', requests: 29 }],
   hourly: Array.from({ length: 24 }, (_, i) => ({ t: iso(now - (23 - i) * 3600e3), requests: Math.round(60 + 40 * Math.sin(i / 3) + 40), cached: 50, threats: 0 })),
-  security: { actions: [{ action: 'keine', requests: 2300 }, { action: 'block', requests: 17 }, { action: 'managed_challenge', requests: 6 }], sources: [{ source: 'waf', requests: 15 }] },
-  paths: [{ path: '/', requests: 900 }, { path: '/api/ext/v1/health', requests: 288 }, { path: '/status', requests: 120 }, { path: '/api/ext/v1/servers', requests: 288 }],
+  security: { actions: [{ action: 'keine', requests: 2300 }, { action: 'block', requests: 17 }, { action: 'managed_challenge', requests: 6 }, { action: 'unknown', requests: 40 }, { action: 'link_maze_injected', requests: 12 }], sources: [{ source: 'waf', requests: 15 }] },
+  paths: [{ path: '/', requests: 900 }, { path: '/api/ext/v1/health', requests: 288 }, { path: '/status', requests: 120 }, { path: '/api/ext/v1/servers', requests: 288 }, { path: '/discopanel.v1.ServerService/GetServer', requests: 200 }, { path: '/workflow/ecMtBEbUm285UGuj', requests: 40 }],
   web: { enabled: false, pageloads: 0, visits: 0, pages: [] }, partErrors: {} } };
 
 const snap = { generatedAt: iso(now - 2 * 60e3), app: process.env.DEMO_APP ?? (process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 12) : 'dev'), intervalMin: 5, filter: { keywords }, balubb: { configured: true, fetchedAt: iso(now - 2 * 60e3), sources: wrap }, cloudflare, history };
