@@ -59,6 +59,13 @@ export function TodoSection({ snap, now }) {
 const SERVER_STATE = { running: ['ok', 'läuft'], starting: ['warn', 'startet'], offline: ['crit', 'offline'] };
 const NOTE_TAG = { crit: 'Fehler', warn: 'Warnung', maint: 'Wartung', info: 'Hinweis' };
 
+/** „genutzt / Grenze“ wie im Panel (z. B. 38 MB / 589 MB); ohne Grenze (0) nur der genutzte Wert, ohne Angabe „–“. */
+const usedOfLimit = (m) => {
+  const used = bytesText(m?.used_bytes);
+  const limit = isNum(m?.limit_mb) && Number(m.limit_mb) > 0 ? bytesText(mbToBytes(m.limit_mb)) : null;
+  return limit ? `${used} / ${limit}` : used;
+};
+
 export function StatusSection({ snap, now, compact = false }) {
   const st = overallStatus(snap, now);
   const serversSrc = source(snap, 'servers');
@@ -91,11 +98,11 @@ export function StatusSection({ snap, now, compact = false }) {
               return (
                 <div className="cp-srv" key={s.name}>
                   <div className="name"><b>{s.name}</b>{s.suspended && <Pill state="warn">gesperrt</Pill>}</div>
-                  <div><Pill state={state}>{word}</Pill>{s.state === 'running' && <div className="up since">seit {durationText(s.uptime_seconds)}</div>}<div className="up">24 h: {pctText(u, 0)}</div><div className="up net" title="Netzwerk gesamt">↓ {bytesText(s.network?.rx_bytes)} · ↑ {bytesText(s.network?.tx_bytes)}</div></div>
+                  <div><Pill state={state}>{word}</Pill>{s.state === 'running' && <div className="up since">Laufzeit {isNum(s.uptime_seconds) ? durationText(s.uptime_seconds) : '–'}</div>}<div className="up">24 h: {pctText(u, 0)}</div><div className="up net" title="Netzwerk gesamt">↓ {bytesText(s.network?.rx_bytes)} · ↑ {bytesText(s.network?.tx_bytes)}</div></div>
                   <div className="vals">
                       <Slim label="CPU" value={isNum(s.cpu_percent) ? Number(s.cpu_percent) : null} />
-                      <Slim label="Speicher" value={memPct} text={memPct == null ? '–' : `${Math.round(memPct)} %`} sub={bytesText(s.memory?.used_bytes)} />
-                      <Slim label="Platte" value={diskPct} text={diskPct == null ? '–' : `${Math.round(diskPct)} %`} sub={bytesText(s.disk?.used_bytes)} />
+                      <Slim label="Speicher" value={memPct} text={memPct == null ? '–' : `${Math.round(memPct)} %`} sub={usedOfLimit(s.memory)} />
+                      <Slim label="Platte" value={diskPct} text={diskPct == null ? '–' : `${Math.round(diskPct)} %`} sub={usedOfLimit(s.disk)} />
                   </div>
                 </div>
               );

@@ -226,7 +226,6 @@ body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger 
 .cp-tvmsg { display: grid; place-items: center; text-align: center; min-height: 100vh; padding: 40px; }
 .cp-tvmsg h1 { font-size: 4.5vmin; } .cp-tvmsg p { font-size: 2.6vmin; }
 
-.cp-tv .cp-srv .since { display: none; }
 .cp-tv .cp-srv { padding: 6px 0; }
 .cp-tv .cp-toprow > .static { display: grid; grid-template-columns: 2rem minmax(0, 1.1fr) minmax(0, 3fr) auto; gap: 8px 16px; align-items: center; padding: 6px 4px; }
 .cp-tv .cp-toprow .figs { font-size: .8rem; gap: 2px 14px; }
@@ -365,3 +364,6 @@ body.cp-kiosk { overflow: hidden; user-select: none; margin: 0; } /* Mauszeiger 
 .cp-tv .cp-srv > .vals { grid-area: vals; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
 .cp-tv .cp-srv .up.net { font-size: .85rem; }
 .cp-tv .cp-slim .row { font-size: .95rem; }
+
+/* Laufzeit je Container auch auf dem Fernseher */
+.cp-tv .cp-srv .up.since { display: block; font-size: .85rem; }
