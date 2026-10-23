@@ -8,7 +8,8 @@ const { version } = JSON.parse(readFileSync(new URL('./package.json', import.met
 export default defineConfig({
   root: 'client',
   plugins: [react()],
-  define: { __APP_VERSION__: JSON.stringify(version) },
+  // __BUILD_ID__: Stand des Codes (Commit); der Snapshot trägt dieselbe Kennung, so erkennt eine offene Seite, dass es eine neue Version gibt
+  define: { __APP_VERSION__: JSON.stringify(version), __BUILD_ID__: JSON.stringify(process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 12) : 'dev') },
   build: {
     outDir: '../dist',
     emptyOutDir: true,

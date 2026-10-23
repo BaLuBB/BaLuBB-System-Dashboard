@@ -85,7 +85,7 @@ const cloudflare = { configured: true, fetchedAt: iso(now - 2 * 60e3), data: {
   paths: [{ path: '/', requests: 900 }, { path: '/api/ext/v1/health', requests: 288 }, { path: '/status', requests: 120 }, { path: '/api/ext/v1/servers', requests: 288 }],
   web: { enabled: false, pageloads: 0, visits: 0, pages: [] }, partErrors: {} } };
 
-const snap = { generatedAt: iso(now - 2 * 60e3), intervalMin: 5, filter: { keywords }, balubb: { configured: true, fetchedAt: iso(now - 2 * 60e3), sources: wrap }, cloudflare, history };
+const snap = { generatedAt: iso(now - 2 * 60e3), app: process.env.DEMO_APP ?? (process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 12) : 'dev'), intervalMin: 5, filter: { keywords }, balubb: { configured: true, fetchedAt: iso(now - 2 * 60e3), sources: wrap }, cloudflare, history };
 await mkdir(out, { recursive: true });
 await writeFile(`${out}/snapshot.enc.json`, JSON.stringify(await encryptJson(snap, password)));
 console.log(`Demo-Snapshot geschrieben (Passwort: ${password}).`);

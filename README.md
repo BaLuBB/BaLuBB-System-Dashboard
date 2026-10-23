@@ -106,6 +106,11 @@ neu geholt. Deshalb startet ein kleiner Cloudflare-Worker (`cloudflare-worker/`)
 Zeitpunkt des Abrufs steht in `builtAt`, bis zu 2 Minuten später). Die Seite holt den neuen Stand kurz nach dem Takt (etwa 75 Sekunden danach,
 wenn die Veröffentlichung durch ist) und versucht es bei Bedarf nach 15, 30 und dann alle 60 Sekunden erneut.
 
+**Ohne Eingriff aktuell (Fernseher, offener Tab):** Der Snapshot trägt die Kennung des Codes (`app`, der Commit). Läuft in einer offenen Seite
+noch ein älterer Code, lädt sie sich beim nächsten Abruf selbst neu (mit eigener Kennung in der Adresse, damit kein Zwischenspeicher die alte Seite
+liefert). Kommt länger als 10 Minuten kein neuer Stand an, lädt sie sich ebenfalls sauber neu. Beides höchstens alle 5 Minuten, damit nichts in
+einer Schleife hängt. Das Passwort bleibt im Browser gespeichert, die Seite meldet sich selbst wieder an.
+
 1. **GitHub-Token anlegen:** GitHub → *Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*.
    Name `dashboard-trigger`, Ablauf nach Wunsch (z. B. 1 Jahr), *Repository access → Only select repositories →* `BaLuBB-System-Dashboard`,
    *Permissions → Repository permissions → **Actions: Read and write*** (sonst nichts). Token kopieren.

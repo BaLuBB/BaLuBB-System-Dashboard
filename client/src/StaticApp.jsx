@@ -4,7 +4,7 @@ import Cockpit, { Loading, useTheme } from './cockpit/Cockpit.jsx';
 import Tv, { TvMessage } from './cockpit/Tv.jsx';
 import { decryptJson } from './crypto.js';
 import { readOptions, tvLink } from './tvmode.js';
-import { isBehind } from './slot.js';
+import { isBehind, isOutdatedCode, isStuck, RELOAD_GAP_MS } from './slot.js';
 
 const RETRY_MS = 30 * 1000;
 const opts = readOptions();
@@ -17,6 +17,20 @@ const store = {
   set: (v) => { try { localStorage.setItem(KEY, v); } catch { /* Speicher nicht verfügbar */ } },
   clear: () => { try { localStorage.removeItem(KEY); } catch { /* ignorieren */ } },
 };
+const BUILD_ID = typeof __BUILD_ID__ === 'string' ? __BUILD_ID__ : 'dev';
+// Sauberes Neuladen (neue Version oder festhängende Seite): Adresse mit eigener Kennung, damit kein alter Zwischenspeicher die alte Seite liefert; höchstens alle paar Minuten
+function reloadClean(tag) {
+  try {
+    const last = Number(sessionStorage.getItem('balubb-reload') ?? 0);
+    if (Date.now() - last < RELOAD_GAP_MS) return false;
+    sessionStorage.setItem('balubb-reload', String(Date.now()));
+  } catch { /* ohne Speicher: trotzdem neu laden, es gibt dann nur keinen Schutz */ }
+  const url = new URL(window.location.href);
+  url.searchParams.set('v', `${tag}${Date.now().toString(36)}`);
+  window.location.replace(url.href);
+  return true;
+}
+const safeSession = () => { try { return sessionStorage.getItem('balubb-reload'); } catch { return null; } };
 const candidate = opts.pw || store.get(); // Link-Passwort gewinnt und überschreibt danach den gespeicherten Wert
 
 // Der Snapshot liegt an der Wurzel der Seite, die Skripte unter assets/: so findet ihn auch die Seite /tv/
@@ -46,7 +60,7 @@ export default function StaticApp() {
   const [remember, setRemember] = useState(true);
 
   const refresh = useCallback(async (pw) => {
-    try { const next = await load(pw); setSnap(next); setError(null); setLostSince(null); return next; }
+    try { const next = await load(pw); if (isOutdatedCode(BUILD_ID, next.app) && reloadClean('n')) return next; setSnap(next); setError(null); setLostSince(null); return next; }
     catch (e) { setError(e.message); setLostSince((t) => t ?? Date.now()); return null; }
   }, []);
 
@@ -87,19 +101,24 @@ export default function StaticApp() {
       try { next = await refresh(pw); if (next && !password) setPassword(pw); }
       finally { last.current = { at: Date.now(), busy: false, misses: next && next.generatedAt === before ? last.current.misses + 1 : next ? 0 : last.current.misses + 1 }; }
     };
-    const check = () => { if (due()) run(); };
+    const check = () => {
+      if (snap && document.visibilityState !== 'hidden' && isStuck(snap.generatedAt, Date.now(), snap.intervalMin, Number(safeSession() ?? 0)) && reloadClean('s')) return;
+      if (due()) run();
+    };
     const wake = () => { if (document.visibilityState !== 'hidden') check(); };
     const t = setInterval(check, 5 * 1000);
     document.addEventListener('visibilitychange', wake);
     window.addEventListener('focus', wake);
     window.addEventListener('online', wake);
     window.addEventListener('pageshow', wake);
+    document.addEventListener('resume', wake); // Tab wurde nach dem Einfrieren wieder geweckt
     return () => {
       clearInterval(t);
       document.removeEventListener('visibilitychange', wake);
       window.removeEventListener('focus', wake);
       window.removeEventListener('online', wake);
       window.removeEventListener('pageshow', wake);
+      document.removeEventListener('resume', wake);
     };
   }, [password, snap, refresh]);
 
