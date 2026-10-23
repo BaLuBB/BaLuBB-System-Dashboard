@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { RANGES, relTime } from './data.js';
-import { filterHint } from './filter.js';
 import { AutomationsSection, ActivitySection, CloudflareSection, Footer, ReleasesSection, SupportSection, SystemSection } from './sectionsB.jsx';
 import { MaintenanceBars, OverviewSection, StatusSection, TodoSection, TopServersSection } from './sectionsA.jsx';
 import { Skeleton } from './ui.jsx';
@@ -51,7 +50,6 @@ export default function Cockpit({ snap, onLogout, onTvLink, error }) {
           <div className="title">
             <h1>BaLuBB System</h1>
             <p>Aktualisiert {ageMin < 1 ? 'gerade eben' : `vor ${ageMin} Min.`}{stale ? ' · veraltet' : ''}{error ? ` · ${error}` : ''}</p>
-            {filterHint(snap) && <p className="cp-filter">Filter: {filterHint(snap)}</p>}
           </div>
           <div className="cp-controls">
             <div className="cp-seg" role="group" aria-label="Zeitraum">
