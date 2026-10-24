@@ -8,7 +8,7 @@ import { createCloudflareClient } from '../server/cloudflare.js';
 import { encryptJson, decryptJson } from '../client/src/crypto.js';
 import { appendPoint, emptyHistory } from '../client/src/history.js';
 import { applyNameFilter, filterHistory, parseKeywords } from '../client/src/cockpit/filter.js';
-import { slotStart } from '../client/src/slot.js';
+import { slotStart, SLOT_FILES_KEPT } from '../client/src/slot.js';
 
 const password = process.env.DASHBOARD_PASSWORD ?? '';
 if (password.length < 12) {
@@ -64,7 +64,21 @@ const encrypted = JSON.stringify(await encryptJson(snapshot, password));
 await writeFile(`${out}/snapshot.enc.json`, encrypted);
 // dieselben Daten unter einem Namen je Intervall (siehe client/src/slot.js, slotFileFor): umgeht einen veralteten Zwischenspeicher
 await mkdir(`${out}/s`, { recursive: true });
-await writeFile(`${out}/s/${slotStart(builtAt, INTERVAL_MIN)}.json`, encrypted);
+const slotNow = slotStart(builtAt, INTERVAL_MIN);
+await writeFile(`${out}/s/${slotNow}.json`, encrypted);
+// Jede Veröffentlichung ersetzt die ganze Seite: die letzten Intervall-Dateien werden deshalb von der laufenden Seite übernommen (ihre Namen sind
+// unveränderlich, ein alter Zwischenspeicher schadet hier nicht). So findet auch eine Seite, die etwas später fragt, noch ihre Datei.
+const siteRoot = (previousUrl() ?? '').replace(/snapshot\.enc\.json$/, '');
+let carried = 0;
+if (siteRoot) {
+  await Promise.all(Array.from({ length: SLOT_FILES_KEPT - 1 }, (_, i) => slotNow - (i + 1) * INTERVAL_MIN * 60_000).map(async (ms) => {
+    try {
+      const r = await fetch(`${siteRoot}s/${ms}.json`, { signal: AbortSignal.timeout(10_000) });
+      if (r.ok) { await writeFile(`${out}/s/${ms}.json`, Buffer.from(await r.arrayBuffer())); carried += 1; }
+    } catch { /* Datei fehlt oder Netz: dann gibt es sie eben nicht */ }
+  }));
+}
+console.log(`Intervall-Dateien: 1 neue, ${carried} übernommen`);
 
 const sources = Object.values(balubb.sources ?? {});
 const okCount = sources.filter((s) => s.available).length;

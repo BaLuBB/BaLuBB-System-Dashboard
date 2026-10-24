@@ -90,5 +90,5 @@ await mkdir(out, { recursive: true });
 const enc = JSON.stringify(await encryptJson(snap, password));
 await writeFile(`${out}/snapshot.enc.json`, enc);
 await mkdir(`${out}/s`, { recursive: true }); // Datei je Intervall, wie im echten Bau 
-for (const step of [120_000, 300_000]) await writeFile(`${out}/s/${Math.floor((now - 100_000) / step) * step}.json`, enc); // 2 Minuten: Takt des echten Baus; 5 Minuten: Takt der Demo
+for (const step of [120_000, 300_000]) for (let k = 0; k < 3; k += 1) await writeFile(`${out}/s/${Math.floor((now - 120_000) / step) * step - k * step}.json`, enc); // 2 Minuten: Takt des echten Baus; 5 Minuten: Takt der Demo; je Takt die drei letzten
 console.log(`Demo-Snapshot geschrieben (Passwort: ${password}).`);
