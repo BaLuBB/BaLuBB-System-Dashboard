@@ -8,6 +8,14 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Notfall-Wächter: kommt die App nicht hoch (alte Seite aus dem Zwischenspeicher, Skript nicht mehr vorhanden, Fehler beim Start), lädt die Seite mit neuer Kennung neu
+      setInterval(function () {
+        if (window.__balubbUp) return;
+        try { var k = 'balubb-boot', t = Number(sessionStorage.getItem(k) || 0); if (Date.now() - t < 60000) return; sessionStorage.setItem(k, String(Date.now())); } catch (e) { /* ohne Speicher: trotzdem versuchen */ }
+        var u = new URL(location.href); u.searchParams.set('v', 'b' + Date.now().toString(36)); location.replace(u.href);
+      }, 40000);
+    </script>
     <script type="module" src="../src/main.jsx"></script>
   </body>
 </html>
