@@ -5,6 +5,7 @@ import Tv, { TvMessage } from './cockpit/Tv.jsx';
 import { decryptJson } from './crypto.js';
 import { readOptions, tvLink } from './tvmode.js';
 import { isBehind, isOutdatedCode, isStuck, RELOAD_GAP_MS, slotFileFor } from './slot.js';
+import { getJson } from './net.js';
 import { DEBUG, DebugPanel, dbg, note, noteSnapshot, pickHeaders } from './debug.jsx';
 
 const RETRY_MS = 30 * 1000;
@@ -44,9 +45,15 @@ const snapshotUrl = () => { try { return new URL(SNAPSHOT_PATH, import.meta.url)
 
 async function get(url, kind) {
   const t0 = Date.now();
-  const res = await fetch(url, { cache: 'no-store' });
-  dbg.fetch = { at: t0, ms: Date.now() - t0, status: res.status, kind, headers: pickHeaders(res.headers) };
-  return res;
+  try {
+    const r = await getJson(url, { init: { cache: 'no-store' } });
+    dbg.fetch = { at: t0, ms: Date.now() - t0, status: r.status, kind, headers: pickHeaders(r.headers) };
+    return r;
+  } catch (e) {
+    dbg.fetch = { at: t0, ms: Date.now() - t0, status: 0, kind, headers: {} };
+    note(`${kind}: ${e.message}`);
+    throw e;
+  }
 }
 
 async function load(password) {
@@ -56,11 +63,11 @@ async function load(password) {
     const url = siteRootUrl() + slotFileFor(Date.now(), dbg.snap?.intervalMin ?? 2);
     const r = await get(url, 'Intervall-Datei');
     if (r.ok) res = r; else note(`Intervall-Datei: HTTP ${r.status}, nehme feste Datei`);
-  } catch { /* Netz oder Adresse: weiter mit der festen Datei */ }
+  } catch { /* Netz, Adresse oder Zeitgrenze: weiter mit der festen Datei */ }
   if (!res) res = await get(`${snapshotUrl()}?t=${Date.now()}`, 'feste Datei');
   if (!res.ok) { note(`Abruf: HTTP ${res.status}`); throw new Error('Noch kein Snapshot veröffentlicht'); }
   try {
-    return await decryptJson(await res.json(), password);
+    return await decryptJson(res.json, password);
   } catch {
     throw new Error('Falsches Passwort');
   }
@@ -109,7 +116,7 @@ function StaticInner() {
   // holt die Seite den neuen Stand; ist er noch nicht da, folgt ein Wiederholversuch (15 s, dann 30 s, dann 60 s, damit eine falsch gehende Uhr nicht ständig lädt).
   // Browser bremsen Timer im Hintergrund: ein kurzer Wächter-Takt prüft deshalb nach Zeitpunkt, und beim Zurückkehren (sichtbar, Fokus, online, Seite aus dem Cache) wird sofort geprüft.
   // Ohne Daten (TV-Modus ohne Verbindung) gilt weiter alle 30 s ein neuer Versuch.
-  const last = useRef({ at: 0, busy: false, misses: 0 });
+  const last = useRef({ at: 0, busy: false, busyAt: 0, misses: 0 });
   useEffect(() => {
     const pw = password || (opts.tv ? candidate : '');
     if (!pw) return undefined;
@@ -121,12 +128,13 @@ function StaticInner() {
       return since >= RETRY[Math.min(last.current.misses, RETRY.length - 1)];
     };
     const run = async () => {
-      if (last.current.busy) return;
+      // „läuft noch“ gilt höchstens eine Minute: bleibt ein Abruf aus irgendeinem Grund hängen, startet danach trotzdem ein neuer
+      if (last.current.busy && Date.now() - last.current.busyAt < 60_000) return;
       const before = snap?.generatedAt;
-      last.current = { ...last.current, at: Date.now(), busy: true };
+      last.current = { ...last.current, at: Date.now(), busy: true, busyAt: Date.now() };
       let next = null;
       try { next = await refresh(pw); if (next && !password) setPassword(pw); }
-      finally { last.current = { at: Date.now(), busy: false, misses: next && next.generatedAt === before ? last.current.misses + 1 : next ? 0 : last.current.misses + 1 }; dbg.misses = last.current.misses; }
+      finally { last.current = { at: Date.now(), busy: false, busyAt: 0, misses: next && next.generatedAt === before ? last.current.misses + 1 : next ? 0 : last.current.misses + 1 }; dbg.misses = last.current.misses; }
     };
     const check = () => {
       if (snap && document.visibilityState !== 'hidden' && isStuck(snap.generatedAt, Date.now(), snap.intervalMin, Number(safeSession() ?? 0)) && reloadClean('s')) return;
