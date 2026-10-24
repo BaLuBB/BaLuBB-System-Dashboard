@@ -123,6 +123,10 @@ einer Schleife hängt. Das Passwort bleibt im Browser gespeichert, die Seite mel
 Der Worker kann ausschließlich diesen einen Workflow starten und ist von außen nicht aufrufbar. Läuft der Token ab oder wird er widerrufen, hört die
 Aktualisierung auf; die Seite zeigt dann weiter den letzten Stand.
 
+### Warum die Anzeige nie hinterherhinkt (Dateien je Intervall)
+
+GitHub Pages liefert jede Datei mit `max-age=600`: eine feste Adresse wie `snapshot.enc.json` darf an der Auslieferung bis zu 10 Minuten alt bleiben, auch wenn die Veröffentlichung längst durch ist. Deshalb legt jeder Bau den Stand zusätzlich unter einem Namen je Intervall ab (`s/<Intervallbeginn in ms>.json`) und nimmt die letzten fünf Dateien von der laufenden Seite mit. Die Seite fragt 120 Sekunden nach Intervallbeginn die Datei dieses Intervalls (dann die davor), erst zuletzt die feste Datei. Ein Name, der nie zuvor abgerufen wurde, kann nicht veraltet sein; die Wartezeit sorgt dafür, dass nie eine noch nicht vorhandene Datei abgefragt wird (ein „nicht gefunden“ bliebe sonst im Zwischenspeicher hängen). Der Schritt „Veröffentlichung von außen prüfen“ im Workflow schreibt nach jedem Lauf ins Protokoll, ob feste Datei und Intervall-Datei von außen aktuell sind (nur Zustände und Kopfzeilen, keine Daten).
+
 ### Aktualisierung, Verlauf, Grenzen
 
 - GitHub führt geplante Workflows frühestens alle 5 Minuten aus und verzögert sie oft um einige Minuten. Die Seite prüft alle

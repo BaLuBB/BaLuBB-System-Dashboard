@@ -45,3 +45,7 @@ jobs:
           path: dist-pages
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Veröffentlichung von außen prüfen (nur Diagnose, bricht nie ab)
+        if: always() && steps.deployment.outcome == 'success'
+        continue-on-error: true
+        run: node scripts/check-live.mjs "${{ steps.deployment.outputs.page_url }}" dist-pages

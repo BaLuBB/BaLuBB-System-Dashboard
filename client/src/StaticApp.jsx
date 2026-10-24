@@ -4,7 +4,7 @@ import Cockpit, { Loading, useTheme } from './cockpit/Cockpit.jsx';
 import Tv, { TvMessage } from './cockpit/Tv.jsx';
 import { decryptJson } from './crypto.js';
 import { readOptions, tvLink } from './tvmode.js';
-import { isBehind, isOutdatedCode, isStuck, RELOAD_GAP_MS, slotFileFor } from './slot.js';
+import { isBehind, isOutdatedCode, isStuck, RELOAD_GAP_MS, slotFilesFor } from './slot.js';
 import { getJson } from './net.js';
 import { DEBUG, DebugPanel, dbg, note, noteSnapshot, pickHeaders } from './debug.jsx';
 
@@ -57,13 +57,15 @@ async function get(url, kind) {
 }
 
 async function load(password) {
-  // Zuerst die Datei dieses Intervalls (nie zuvor abgerufen, also nie veraltet aus einem Zwischenspeicher), sonst die feste Datei
+  // Zuerst die Datei dieses Intervalls, dann die davor (nie zuvor abgerufen, also nie veraltet aus einem Zwischenspeicher), erst zuletzt die feste Datei
   let res = null;
-  try {
-    const url = siteRootUrl() + slotFileFor(Date.now(), dbg.snap?.intervalMin ?? 2);
-    const r = await get(url, 'Intervall-Datei');
-    if (r.ok) res = r; else note(`Intervall-Datei: HTTP ${r.status}, nehme feste Datei`);
-  } catch { /* Netz, Adresse oder Zeitgrenze: weiter mit der festen Datei */ }
+  for (const file of slotFilesFor(Date.now(), dbg.snap?.intervalMin ?? 2)) {
+    try {
+      const r = await get(siteRootUrl() + file, 'Intervall-Datei');
+      if (r.ok) { res = r; break; }
+      note(`${file}: HTTP ${r.status}`);
+    } catch { /* Netz, Adresse oder Zeitgrenze: nächste Möglichkeit */ }
+  }
   if (!res) res = await get(`${snapshotUrl()}?t=${Date.now()}`, 'feste Datei');
   if (!res.ok) { note(`Abruf: HTTP ${res.status}`); throw new Error('Noch kein Snapshot veröffentlicht'); }
   try {

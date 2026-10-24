@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { slotStart, isBehind, SETTLE_MS, isOutdatedCode, isStuck, slotFileFor, SLOT_FILE_DELAY_MS } from '../client/src/slot.js';
+import { slotStart, isBehind, SETTLE_MS, isOutdatedCode, isStuck, slotFileFor, slotFilesFor, SLOT_FILE_DELAY_MS, SLOT_FILES_KEPT } from '../client/src/slot.js';
 
 const t = (s) => Date.parse(`2026-10-22T21:${s}Z`);
 
@@ -13,11 +13,11 @@ test('Raster: Stand ist immer der Beginn des 2-Minuten-Intervalls (gerade Minute
 
 test('Abruf: erst nach der Wartezeit ist ein neuer Stand fällig, davor nicht', () => {
   const g = new Date(t('46:00')).toISOString();
-  assert.equal(isBehind(g, t('48:30'), 2), false, 'um 21:48:30 kann der Stand 21:48 noch nicht da sein');
-  assert.equal(isBehind(g, t('49:30'), 2), true, 'um 21:49:30 müsste der Stand 21:48 da sein');
-  assert.equal(isBehind(new Date(t('48:00')).toISOString(), t('49:30'), 2), false);
+  assert.equal(isBehind(g, t('49:30'), 2), false, 'um 21:49:30 kann der Stand 21:48 noch nicht abrufbar sein (Wartezeit 120 s)');
+  assert.equal(isBehind(g, t('50:30'), 2), true, 'um 21:50:30 müsste der Stand 21:48 da sein');
+  assert.equal(isBehind(new Date(t('48:00')).toISOString(), t('50:30'), 2), false);
   assert.equal(isBehind('kaputt', t('48:30'), 2), true);
-  assert.ok(SETTLE_MS < 120_000);
+  assert.ok(SETTLE_MS <= 120_000);
 });
 
 test('Selbstheilung: neue Version erkennen, festhängende Seite neu laden, aber nie in einer Schleife', () => {
@@ -35,7 +35,9 @@ test('Selbstheilung: neue Version erkennen, festhängende Seite neu laden, aber 
 
 test('Dateiname je Intervall: erst nach Bauen und Veröffentlichen, immer der gleiche Name innerhalb des Intervalls', () => {
   const slot = Date.parse('2026-10-23T18:56:00Z');
-  assert.equal(slotFileFor(slot + SLOT_FILE_DELAY_MS, 2), `s/${slot}.json`, 'ab 100 s nach Intervallbeginn gilt die Datei dieses Intervalls');
+  assert.equal(slotFileFor(slot + SLOT_FILE_DELAY_MS, 2), `s/${slot}.json`, 'ab 120 s nach Intervallbeginn gilt die Datei dieses Intervalls');
   assert.equal(slotFileFor(slot + SLOT_FILE_DELAY_MS - 1000, 2), `s/${slot - 120000}.json`, 'davor noch die vom vorigen Intervall');
-  assert.equal(slotFileFor(slot + 119000, 2), slotFileFor(slot + 101000, 2));
+  assert.equal(slotFileFor(slot + 239000, 2), slotFileFor(slot + 121000, 2));
+  assert.deepEqual(slotFilesFor(slot + SLOT_FILE_DELAY_MS, 2), [`s/${slot}.json`, `s/${slot - 120000}.json`, `s/${slot - 240000}.json`], 'Ausweichdateien: die zwei davor');
+  assert.ok(SLOT_FILES_KEPT >= 3, 'der Bau nimmt mindestens so viele Dateien mit, wie die Seite als Ausweichen versucht');
 });
