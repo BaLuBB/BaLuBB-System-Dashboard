@@ -5,11 +5,28 @@ import { readdir, readFile } from 'node:fs/promises';
 
 const base = (process.argv[2] ?? '').replace(/\/?$/, '/');
 const dir = process.argv[3] ?? 'dist-pages';
+const mode = process.argv[4] ?? 'nachher';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const sha = (buf) => createHash('sha256').update(buf).digest('hex').slice(0, 12);
 const pick = (h) => ['age', 'cache-control', 'last-modified', 'x-cache', 'x-served-by', 'date'].map((k) => `${k}=${h.get(k) ?? '–'}`).join(' · ');
 
 if (base === '/') { console.log('keine Adresse der Seite, Prüfung übersprungen'); process.exit(0); }
+
+// Vor dem Bau: wie alt ist, was die Auslieferung jetzt (rund 2 Minuten nach der letzten Veröffentlichung) für die feste Adresse und die Startseite hergibt?
+// Ein Alter über etwa 150 s heißt: der Zwischenspeicher wurde bei der letzten Veröffentlichung nicht geleert.
+if (mode === 'vorher') {
+  for (const [label, url] of [['feste Datei', `${base}snapshot.enc.json`], ['Startseite', base], ['TV-Seite', `${base}tv/`]]) {
+    try {
+      const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(15_000) });
+      await res.arrayBuffer();
+      const lm = Date.parse(res.headers.get('last-modified') ?? '');
+      console.log(`Vorab ${label}: HTTP ${res.status} · Alter laut Last-Modified ${Number.isFinite(lm) ? Math.round((Date.now() - lm) / 1000) : '–'} s · ${pick(res.headers)}`);
+    } catch (e) {
+      console.log(`Vorab ${label}: Fehler ${e.name}`);
+    }
+  }
+  process.exit(0);
+}
 const localGeneric = sha(await readFile(`${dir}/snapshot.enc.json`));
 const slots = (await readdir(`${dir}/s`)).sort();
 const newest = slots.at(-1);
