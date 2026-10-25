@@ -12,16 +12,19 @@ permissions:
   pages: write
   id-token: write
 
+# Laufende Veröffentlichungen werden nie abgebrochen (ein abgebrochener Lauf mitten in der Veröffentlichung kann Pages auf einem alten Stand hängen lassen);
+# wartet schon ein Lauf, ersetzt ihn der neueste.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -46,9 +49,17 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist-pages
-      - id: deployment
+      - name: Veröffentlichen (eigene Version je Lauf)
+        id: own
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/deploy-pages.mjs
+      - name: Veröffentlichen mit der fertigen Aktion (nur wenn die eigene Veröffentlichung scheiterte)
+        id: deployment
+        if: steps.own.outcome != 'success'
         uses: actions/deploy-pages@v4
       - name: Veröffentlichung von außen prüfen (nur Diagnose, bricht nie ab)
-        if: always() && steps.deployment.outcome == 'success'
+        if: always() && (steps.own.outcome == 'success' || steps.deployment.outcome == 'success')
         continue-on-error: true
-        run: node scripts/check-live.mjs "${{ steps.deployment.outputs.page_url }}" dist-pages
+        run: node scripts/check-live.mjs "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" dist-pages
