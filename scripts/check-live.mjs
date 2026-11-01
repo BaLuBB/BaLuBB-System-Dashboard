@@ -37,6 +37,7 @@ for (const [label, url, want] of [
   ['feste Datei (mit ?t=)', `${base}snapshot.enc.json?t=${Date.now()}`, localGeneric],
   ['feste Datei (ohne ?t=)', `${base}snapshot.enc.json`, localGeneric],
   ['Intervall-Datei', `${base}s/${newest}`, localSlot],
+  ...(process.env.VITE_DATA_BASE ? [['Datenzweig (Intervall-Datei)', `${process.env.VITE_DATA_BASE}s/${newest}`, localSlot]] : []),
 ]) {
   try {
     const t0 = Date.now();

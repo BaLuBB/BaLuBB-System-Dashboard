@@ -8,7 +8,7 @@ on:
     - cron: '*/5 * * * *' # Reserve; zuverlässig startet der Cloudflare-Worker (cloudflare-worker/)
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -35,6 +35,8 @@ jobs:
       - run: npm test
       - name: Vorab messen, was die Auslieferung gerade hergibt (nur Diagnose, bricht nie ab)
         continue-on-error: true
+        env:
+          VITE_DATA_BASE: https://raw.githubusercontent.com/${{ github.repository }}/data/
         run: node scripts/check-live.mjs "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" dist-pages vorher
       - name: Bauen und Snapshot verschlüsseln
         env:
@@ -44,7 +46,30 @@ jobs:
           CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
           SNAPSHOT_INTERVAL_MIN: 2
           NAME_FILTER: ${{ vars.NAME_FILTER }}
+          VITE_DATA_BASE: https://raw.githubusercontent.com/${{ github.repository }}/data/
         run: npm run build:pages
+      # Zweiter Weg für die Daten, unabhängig von GitHub Pages: der verschlüsselte Snapshot und die letzten Intervall-Dateien liegen auf dem Zweig „data“
+      # (eine einzige Übergabe, jedes Mal neu geschrieben, die Versionsgeschichte wächst nicht). Die Seite liest zuerst von dort.
+      - name: Daten-Zweig aktualisieren
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          work="$(mktemp -d)"
+          mkdir -p "$work/s"
+          git fetch --depth=1 origin data 2>/dev/null && git archive FETCH_HEAD s 2>/dev/null | tar -x -C "$work" || true
+          cp dist-pages/snapshot.enc.json "$work/"
+          cp -f dist-pages/s/*.json "$work/s/"
+          ls "$work"/s/*.json | sort | head -n -8 | xargs -r rm -f
+          cd "$work"
+          git init -q -b data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Stand $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" data
+          echo "Daten-Zweig geschrieben: $(ls s | wc -l) Intervall-Dateien"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -67,4 +92,6 @@ jobs:
       - name: Veröffentlichung von außen prüfen (nur Diagnose, bricht nie ab)
         if: always() && (steps.own.outcome == 'success' || steps.deployment.outcome == 'success')
         continue-on-error: true
+        env:
+          VITE_DATA_BASE: https://raw.githubusercontent.com/${{ github.repository }}/data/
         run: node scripts/check-live.mjs "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" dist-pages

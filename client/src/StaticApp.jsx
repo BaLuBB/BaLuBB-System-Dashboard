@@ -40,6 +40,8 @@ const candidate = opts.pw || store.get(); // Link-Passwort gewinnt und überschr
 const SNAPSHOT_PATH = '../snapshot.enc.json';
 // Wurzel der Seite als Adresse; der Pfad steht in einer Konstante, sonst deutet Vite new URL(…, import.meta.url) als Bilddatei um
 const ROOT_PATH = '../';
+// Zweiter, unabhängiger Weg für die Daten: der Zweig „data“ des Repos (wird bei jedem Lauf neu geschrieben, GitHub Pages ist dafür nicht nötig)
+const DATA_BASE = import.meta.env.VITE_DATA_BASE || '';
 const siteRootUrl = () => { try { return new URL(ROOT_PATH, import.meta.url).href; } catch { return './'; } };
 const snapshotUrl = () => { try { return new URL(SNAPSHOT_PATH, import.meta.url).href; } catch { return './snapshot.enc.json'; } };
 
@@ -57,14 +59,19 @@ async function get(url, kind) {
 }
 
 async function load(password) {
-  // Zuerst die Datei dieses Intervalls, dann die davor (nie zuvor abgerufen, also nie veraltet aus einem Zwischenspeicher), erst zuletzt die feste Datei
+  // Zuerst die Datei dieses Intervalls, dann die davor (nie zuvor abgerufen, also nie veraltet aus einem Zwischenspeicher), erst zuletzt die feste Datei.
+  // Je Datei zuerst der Datenzweig, dann GitHub Pages: fällt einer aus oder hängt auf altem Stand, liefert der andere.
   let res = null;
   for (const file of slotFilesFor(Date.now(), dbg.snap?.intervalMin ?? 2)) {
-    try {
-      const r = await get(siteRootUrl() + file, 'Intervall-Datei');
-      if (r.ok) { res = r; break; }
-      note(`${file}: HTTP ${r.status}`);
-    } catch { /* Netz, Adresse oder Zeitgrenze: nächste Möglichkeit */ }
+    for (const [base, kind] of [[DATA_BASE, 'Datenzweig'], [siteRootUrl(), 'Intervall-Datei']]) {
+      if (!base) continue;
+      try {
+        const r = await get(base + file, kind);
+        if (r.ok) { res = r; break; }
+        note(`${kind} ${file}: HTTP ${r.status}`);
+      } catch { /* Netz, Adresse oder Zeitgrenze: nächste Möglichkeit */ }
+    }
+    if (res) break;
   }
   if (!res) res = await get(`${snapshotUrl()}?t=${Date.now()}`, 'feste Datei');
   if (!res.ok) { note(`Abruf: HTTP ${res.status}`); throw new Error('Noch kein Snapshot veröffentlicht'); }
