@@ -49,13 +49,18 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist-pages
+      # Die fertige Aktion nimmt als Version den Commit (GITHUB_SHA). Läuft derselbe Commit hunderte Male, bleibt die Auslieferung irgendwann auf einem alten Stand hängen,
+      # obwohl jeder Lauf „erfolgreich“ meldet. Darum bekommt jede Veröffentlichung eine eigene, aus Commit und Laufnummer gebildete Version.
+      - name: Version dieser Veröffentlichung bilden
+        id: version
+        run: echo "sha=$(printf '%s-%s-%s' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" | sha1sum | cut -c1-40)" >> "$GITHUB_OUTPUT"
       - name: Veröffentlichen (eigene Version je Lauf)
         id: own
         continue-on-error: true
+        uses: actions/deploy-pages@v4
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/deploy-pages.mjs
-      - name: Veröffentlichen mit der fertigen Aktion (nur wenn die eigene Veröffentlichung scheiterte)
+          GITHUB_SHA: ${{ steps.version.outputs.sha }}
+      - name: Veröffentlichen mit dem Commit als Version (nur wenn die eigene Version scheiterte)
         id: deployment
         if: steps.own.outcome != 'success'
         uses: actions/deploy-pages@v4
