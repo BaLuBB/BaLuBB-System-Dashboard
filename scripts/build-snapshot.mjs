@@ -2,7 +2,7 @@
 // nach dist-pages/snapshot.enc.json. Der Verlauf stammt aus dem zuletzt veröffentlichten (verschlüsselten) Snapshot der Seite selbst.
 // Ohne DASHBOARD_PASSWORD wird nichts geschrieben: es darf nie Klartext veröffentlicht werden.
 // Die Logs öffentlicher Repos sind öffentlich: ausgegeben werden nur Zustände, nie Daten oder Schlüssel.
-import { mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createBalubbSuite } from '../server/balubbApi.js';
 import { createCloudflareClient } from '../server/cloudflare.js';
 import { encryptJson, decryptJson } from '../client/src/crypto.js';
@@ -27,7 +27,21 @@ function previousUrl() {
   return owner && repo ? `https://${owner.toLowerCase()}.github.io/${repo}/snapshot.enc.json` : null;
 }
 
+// Der Vorgänger kommt zuerst aus dem Daten-Zweig (vom Ablauf per git geholt, kein Zwischenspeicher dazwischen), erst dann von der Seite
+const prevDir = process.env.PREV_DIR ?? '';
+async function previousFromBranch() {
+  if (!prevDir) return null;
+  try { return JSON.parse(await readFile(`${prevDir}/snapshot.enc.json`, 'utf8')); } catch { return null; }
+}
+
 async function loadPreviousHistory() {
+  const fromBranch = await previousFromBranch();
+  if (fromBranch) {
+    try {
+      const h = (await decryptJson(fromBranch, password)).history;
+      if (h && Array.isArray(h.names) && Array.isArray(h.points)) return { history: h, note: `${h.points.length} Messpunkte aus dem Daten-Zweig übernommen` };
+    } catch { /* nicht lesbar: dann von der Seite */ }
+  }
   const url = previousUrl();
   if (!url) return { history: emptyHistory(), note: 'keine Pages-URL, Verlauf startet neu' };
   try {
@@ -70,14 +84,17 @@ await writeFile(`${out}/s/${slotNow}.json`, encrypted);
 // unveränderlich, ein alter Zwischenspeicher schadet hier nicht). So findet auch eine Seite, die etwas später fragt, noch ihre Datei.
 const siteRoot = (previousUrl() ?? '').replace(/snapshot\.enc\.json$/, '');
 let carried = 0;
-if (siteRoot) {
-  await Promise.all(Array.from({ length: SLOT_FILES_KEPT - 1 }, (_, i) => slotNow - (i + 1) * INTERVAL_MIN * 60_000).map(async (ms) => {
-    try {
-      const r = await fetch(`${siteRoot}s/${ms}.json`, { signal: AbortSignal.timeout(10_000) });
-      if (r.ok) { await writeFile(`${out}/s/${ms}.json`, Buffer.from(await r.arrayBuffer())); carried += 1; }
-    } catch { /* Datei fehlt oder Netz: dann gibt es sie eben nicht */ }
-  }));
-}
+const carryOne = async (ms) => {
+  try {
+    if (prevDir) { await copyFile(`${prevDir}/s/${ms}.json`, `${out}/s/${ms}.json`); carried += 1; return; }
+  } catch { /* nicht im Daten-Zweig: dann von der Seite */ }
+  if (!siteRoot) return;
+  try {
+    const r = await fetch(`${siteRoot}s/${ms}.json`, { signal: AbortSignal.timeout(10_000) });
+    if (r.ok) { await writeFile(`${out}/s/${ms}.json`, Buffer.from(await r.arrayBuffer())); carried += 1; }
+  } catch { /* Datei fehlt oder Netz: dann gibt es sie eben nicht */ }
+};
+await Promise.all(Array.from({ length: SLOT_FILES_KEPT - 1 }, (_, i) => carryOne(slotNow - (i + 1) * INTERVAL_MIN * 60_000)));
 console.log(`Intervall-Dateien: 1 neue, ${carried} übernommen`);
 
 const sources = Object.values(balubb.sources ?? {});

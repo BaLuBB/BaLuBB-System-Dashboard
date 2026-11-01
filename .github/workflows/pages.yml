@@ -38,6 +38,11 @@ jobs:
         env:
           VITE_DATA_BASE: https://raw.githubusercontent.com/${{ github.repository }}/data/
         run: node scripts/check-live.mjs "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" dist-pages vorher
+      - name: Vorgänger aus dem Daten-Zweig holen
+        continue-on-error: true
+        run: |
+          mkdir -p prev
+          git fetch --depth=1 origin data && git archive FETCH_HEAD | tar -x -C prev
       - name: Bauen und Snapshot verschlüsseln
         env:
           DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
@@ -47,6 +52,7 @@ jobs:
           SNAPSHOT_INTERVAL_MIN: 2
           NAME_FILTER: ${{ vars.NAME_FILTER }}
           VITE_DATA_BASE: https://raw.githubusercontent.com/${{ github.repository }}/data/
+          PREV_DIR: prev
         run: npm run build:pages
       # Zweiter Weg für die Daten, unabhängig von GitHub Pages: der verschlüsselte Snapshot und die letzten Intervall-Dateien liegen auf dem Zweig „data“
       # (eine einzige Übergabe, jedes Mal neu geschrieben, die Versionsgeschichte wächst nicht). Die Seite liest zuerst von dort.
@@ -58,7 +64,6 @@ jobs:
           set -e
           work="$(mktemp -d)"
           mkdir -p "$work/s"
-          git fetch --depth=1 origin data 2>/dev/null && git archive FETCH_HEAD s 2>/dev/null | tar -x -C "$work" || true
           cp dist-pages/snapshot.enc.json "$work/"
           cp -f dist-pages/s/*.json "$work/s/"
           ls "$work"/s/*.json | sort | head -n -8 | xargs -r rm -f
@@ -74,23 +79,10 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist-pages
-      # Die fertige Aktion nimmt als Version den Commit (GITHUB_SHA). Läuft derselbe Commit hunderte Male, bleibt die Auslieferung irgendwann auf einem alten Stand hängen,
-      # obwohl jeder Lauf „erfolgreich“ meldet. Darum bekommt jede Veröffentlichung eine eigene, aus Commit und Laufnummer gebildete Version.
-      - name: Version dieser Veröffentlichung bilden
-        id: version
-        run: echo "sha=$(printf '%s-%s-%s' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" | sha1sum | cut -c1-40)" >> "$GITHUB_OUTPUT"
-      - name: Veröffentlichen (eigene Version je Lauf)
-        id: own
-        continue-on-error: true
-        uses: actions/deploy-pages@v4
-        env:
-          GITHUB_SHA: ${{ steps.version.outputs.sha }}
-      - name: Veröffentlichen mit dem Commit als Version (nur wenn die eigene Version scheiterte)
-        id: deployment
-        if: steps.own.outcome != 'success'
+      - id: deployment
         uses: actions/deploy-pages@v4
       - name: Veröffentlichung von außen prüfen (nur Diagnose, bricht nie ab)
-        if: always() && (steps.own.outcome == 'success' || steps.deployment.outcome == 'success')
+        if: always() && steps.deployment.outcome == 'success'
         continue-on-error: true
         env:
           VITE_DATA_BASE: https://raw.githubusercontent.com/${{ github.repository }}/data/
